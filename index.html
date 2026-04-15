@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OMNI PLANNER · businesses + personal · income & expenditure</title>
+<title>OMNI PLANNER · personal + business (separate pages)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -18,8 +18,8 @@
   .deadline-urgent { background: #f0e0d8; border-left: 3px solid #b55a3a; }
   .deadline-soon { background: #f0e8d8; border-left: 3px solid #c99a3a; }
   .income-positive { color: #2d6a4f; }
-  .business-tab { border-bottom: 2px solid transparent; cursor: pointer; }
-  .business-tab.active { border-bottom-color: #8e7a66; background: #f5f0ea; }
+  .page-tab { border-bottom: 2px solid transparent; cursor: pointer; }
+  .page-tab.active { border-bottom-color: #8e7a66; background: #f5f0ea; }
   input, textarea, select { background: #fffefa; border: 1px solid #cdbfb0; padding: 8px 10px; font-size: 12px; font-family: monospace; }
   input:focus, textarea:focus, select:focus { outline: none; border-color: #8e7a66; }
   table td, table th { border: 1px solid #e2d7ce; padding: 8px; vertical-align: top; font-size: 12px; }
@@ -31,14 +31,14 @@
 
 <div class="max-w-7xl mx-auto">
 
-  <!-- header -->
+  <!-- header + page tabs -->
   <div class="flex flex-wrap justify-between items-end mb-5 pb-2 border-b border-[#cfc3b6]">
     <div>
-      <h1 class="text-2xl font-normal tracking-tight">omni planner · businesses + personal</h1>
+      <h1 class="text-2xl font-normal tracking-tight">omni planner</h1>
       <div class="flex gap-3 mt-1 text-[11px] text-[#7f6e5d]">
-        <span>● multiple businesses</span>
-        <span>● personal account</span>
-        <span>● income & expenditure per entity</span>
+        <span>● personal finance</span>
+        <span>● business finance</span>
+        <span>● separate ledgers</span>
         <span>● deadlines & wants target</span>
       </div>
     </div>
@@ -48,707 +48,542 @@
     </div>
   </div>
 
-  <!-- BUSINESS SELECTOR -->
-  <div class="paper p-4 mb-5">
-    <div class="text-xs text-[#7f6e5d] mb-2">entity / business</div>
-    <div class="flex flex-wrap gap-2 items-center">
-      <div id="businessTabs" class="flex flex-wrap gap-1 flex-1"></div>
-      <button id="addBusinessBtn" class="btn-plain text-xs">+ new business</button>
-      <button id="renameBusinessBtn" class="btn-plain text-xs">rename</button>
-      <button id="deleteBusinessBtn" class="btn-plain text-xs">delete</button>
-    </div>
+  <!-- PAGE SELECTOR (personal / business) -->
+  <div class="flex gap-2 mb-5">
+    <button id="personalPageBtn" class="page-tab px-6 py-2 text-sm font-medium">👤 personal</button>
+    <button id="businessPageBtn" class="page-tab px-6 py-2 text-sm font-medium">🏢 business</button>
   </div>
 
-  <!-- INCOME SECTION (per business) -->
-  <div class="paper p-4 mb-5">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-xs font-medium">💰 income streams · <span id="currentBusinessName">personal</span></div>
-      <button id="addIncomeBtn" class="btn-plain text-xs">+ add income</button>
-    </div>
-    <div id="incomeList" class="space-y-2 max-h-48 overflow-y-auto"></div>
-    <div class="mt-3 pt-2 border-t border-[#e2d7ce] flex justify-between text-sm">
-      <span>total monthly income:</span>
-      <span class="font-bold stat-number income-positive" id="totalIncomeDisplay">0.00</span>
-    </div>
-    <div class="text-[10px] text-[#8e7a66] mt-1">acquisition method = source (salary, freelance, sales, etc)</div>
-  </div>
-
-  <!-- wants target panel (per business) -->
-  <div class="paper p-4 mb-5">
-    <div class="text-xs font-medium mb-2">🎯 wants target · <span id="targetBusinessLabel">personal</span></div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants amount (monthly)</label><input type="number" id="wantsTargetAmount" class="w-full" placeholder="0.00" step="100"></div>
-      <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants % of total expenses</label><input type="number" id="wantsTargetPercent" class="w-full" placeholder="30" step="5" min="0" max="100"></div>
-      <div class="flex items-end"><button id="applyTargetBtn" class="btn-primary w-full py-2 text-sm">apply target</button></div>
-    </div>
-  </div>
-
-  <!-- month selector -->
-  <div class="paper p-4 mb-5 flex flex-wrap gap-3 items-end justify-between">
-    <div class="flex-1 min-w-[200px]"><label class="text-[11px] uppercase tracking-wide text-[#7f6e5d] block mb-1">planning month</label><input type="month" id="plannerMonth" class="w-full"></div>
-    <div class="flex gap-2"><button id="jumpToCurrentBtn" class="btn-plain text-xs">📍 current</button><button id="projectForwardBtn" class="btn-plain text-xs">🔮 project 3 months</button></div>
-  </div>
-
-  <!-- KPI with surplus per business -->
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-    <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total income</div><div class="text-xl stat-number income-positive" id="kpiIncome">0.00</div></div>
-    <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total expenses</div><div class="text-xl stat-number" id="kpiExpenses">0.00</div></div>
-    <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">surplus/deficit</div><div class="text-xl stat-number" id="kpiSurplus">0.00</div></div>
-    <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">needs total</div><div class="text-xl stat-number" id="needsTotal">0.00</div></div>
-    <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">wants actual</div><div class="text-xl stat-number" id="wantsActual">0.00</div></div>
-  </div>
-
-  <!-- type toggle + expenditure entry form -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-    <div class="paper p-4">
-      <div class="flex gap-2 mb-4">
-        <button id="needsModeBtn" class="flex-1 btn-plain text-sm py-1.5">needs · essential</button>
-        <button id="wantsModeBtn" class="flex-1 btn-plain text-sm py-1.5">wants · discretionary</button>
+  <!-- ================================================================ -->
+  <!-- PERSONAL PAGE (shown by default) -->
+  <!-- ================================================================ -->
+  <div id="personalPage" class="page-content">
+    <!-- personal income section -->
+    <div class="paper p-4 mb-5">
+      <div class="flex justify-between items-center mb-3">
+        <div class="text-xs font-medium">💰 personal income streams</div>
+        <button id="personalAddIncomeBtn" class="btn-plain text-xs">+ add income</button>
       </div>
-      <div class="mb-3 text-xs">active: <span id="activeTypeLabel" class="font-bold">needs</span></div>
-
-      <input type="text" id="entryTitle" placeholder="title" class="w-full mb-2 text-sm">
-      <textarea id="entryNotes" rows="2" placeholder="notes" class="w-full mb-2 text-sm"></textarea>
-      <input type="number" id="entryAmount" placeholder="amount" class="w-full mb-2 text-sm">
-
-      <div class="mb-3">
-        <label class="text-[11px] text-[#7f6e5d] block mb-1">deadline (months from now) · 0 = no deadline</label>
-        <input type="number" id="deadlineMonths" placeholder="months until due" class="w-full text-sm" min="0" step="1" value="0">
+      <div id="personalIncomeList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+      <div class="mt-3 pt-2 border-t border-[#e2d7ce] flex justify-between text-sm">
+        <span>total monthly income:</span>
+        <span class="font-bold stat-number income-positive" id="personalTotalIncome">0.00</span>
       </div>
+      <div class="text-[10px] text-[#8e7a66] mt-1">acquisition method = source (salary, freelance, etc)</div>
+    </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <label class="text-xs flex items-center gap-1"><input type="radio" name="recurrence" value="monthly" id="monthlyRadio" checked> <span>monthly</span></label>
-        <label class="text-xs flex items-center gap-1"><input type="radio" name="recurrence" value="yearly" id="yearlyRadio"> <span>yearly</span></label>
-        <label class="text-xs flex items-center gap-1"><input type="radio" name="recurrence" value="onetime" id="onetimeRadio"> <span>one-time</span></label>
-      </div>
-
-      <label class="flex items-center gap-2 mb-3 text-xs"><input type="checkbox" id="postponeCheckbox"> <span>postpone this month</span></label>
-
-      <button id="commitEntryBtn" class="w-full btn-primary py-2 text-sm">add / update</button>
-      <button id="abortEditBtn" class="w-full text-[11px] text-[#8e7a66] mt-2 text-left">cancel edit</button>
-
-      <div class="mt-3 pt-2 border-t border-[#e2d7ce] text-[10px] text-[#8e7a66] space-y-1">
-        <div>📅 deadline = months until payment must be made</div>
-        <div>⟳ monthly → repeats each month</div>
-        <div>📅 yearly → once per year (month match)</div>
+    <!-- personal wants target -->
+    <div class="paper p-4 mb-5">
+      <div class="text-xs font-medium mb-2">🎯 personal wants target</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants amount (monthly)</label><input type="number" id="personalWantsAmount" class="w-full" placeholder="0.00" step="100"></div>
+        <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants % of expenses</label><input type="number" id="personalWantsPercent" class="w-full" placeholder="30" step="5" min="0" max="100"></div>
+        <div class="flex items-end"><button id="personalApplyTargetBtn" class="btn-primary w-full py-2 text-sm">apply target</button></div>
       </div>
     </div>
 
-    <div class="lg:col-span-2 paper p-4">
-      <div class="flex justify-between items-center mb-3 pb-1 border-b border-[#e2d7ce]">
-        <span class="text-xs">expenditure ledger · <span id="entryCountSpan">0</span> entries</span>
-        <div class="flex gap-2">
-          <span class="text-[10px] bg-[#e8e0d5] px-2 py-0.5">⟳ monthly</span>
-          <span class="text-[10px] bg-[#ddd0c0] px-2 py-0.5">📅 yearly</span>
-          <span class="text-[10px] bg-[#f0e9e2] px-2 py-0.5">○ one-time</span>
-          <span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸ postponed</span>
-          <button id="exportCsvBtn" class="btn-plain text-[11px] py-0.5 px-2">csv</button>
+    <!-- personal month selector -->
+    <div class="paper p-4 mb-5 flex flex-wrap gap-3 items-end justify-between">
+      <div class="flex-1 min-w-[200px]"><label class="text-[11px] uppercase tracking-wide text-[#7f6e5d] block mb-1">planning month</label><input type="month" id="personalMonth" class="w-full"></div>
+      <div class="flex gap-2"><button id="personalJumpToCurrent" class="btn-plain text-xs">📍 current</button><button id="personalProjectForward" class="btn-plain text-xs">🔮 project 3 months</button></div>
+    </div>
+
+    <!-- personal KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total income</div><div class="text-xl stat-number income-positive" id="personalKpiIncome">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total expenses</div><div class="text-xl stat-number" id="personalKpiExpenses">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">surplus/deficit</div><div class="text-xl stat-number" id="personalKpiSurplus">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">needs total</div><div class="text-xl stat-number" id="personalNeedsTotal">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">wants actual</div><div class="text-xl stat-number" id="personalWantsActual">0.00</div></div>
+    </div>
+
+    <!-- personal expenditure entry -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+      <div class="paper p-4">
+        <div class="flex gap-2 mb-4">
+          <button id="personalNeedsBtn" class="flex-1 btn-plain text-sm py-1.5">needs · essential</button>
+          <button id="personalWantsBtn" class="flex-1 btn-plain text-sm py-1.5">wants · discretionary</button>
+        </div>
+        <div class="mb-3 text-xs">active: <span id="personalActiveType" class="font-bold">needs</span></div>
+        <input type="text" id="personalEntryTitle" placeholder="title" class="w-full mb-2 text-sm">
+        <textarea id="personalEntryNotes" rows="2" placeholder="notes" class="w-full mb-2 text-sm"></textarea>
+        <input type="number" id="personalEntryAmount" placeholder="amount" class="w-full mb-2 text-sm">
+        <div class="mb-3"><label class="text-[11px] text-[#7f6e5d] block mb-1">deadline (months from now) · 0 = no deadline</label><input type="number" id="personalDeadlineMonths" class="w-full text-sm" min="0" step="1" value="0"></div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="personalRecurrence" value="monthly" id="personalMonthlyRadio" checked> <span>monthly</span></label>
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="personalRecurrence" value="yearly" id="personalYearlyRadio"> <span>yearly</span></label>
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="personalRecurrence" value="onetime" id="personalOnetimeRadio"> <span>one-time</span></label>
+        </div>
+        <label class="flex items-center gap-2 mb-3 text-xs"><input type="checkbox" id="personalPostponeCheck"> <span>postpone this month</span></label>
+        <button id="personalCommitBtn" class="w-full btn-primary py-2 text-sm">add / update</button>
+        <button id="personalAbortBtn" class="w-full text-[11px] text-[#8e7a66] mt-2 text-left">cancel edit</button>
+      </div>
+
+      <div class="lg:col-span-2 paper p-4">
+        <div class="flex justify-between items-center mb-3 pb-1 border-b border-[#e2d7ce]">
+          <span class="text-xs">personal ledger · <span id="personalEntryCount">0</span> entries</span>
+          <div class="flex gap-2">
+            <span class="text-[10px] bg-[#e8e0d5] px-2 py-0.5">⟳ monthly</span>
+            <span class="text-[10px] bg-[#ddd0c0] px-2 py-0.5">📅 yearly</span>
+            <span class="text-[10px] bg-[#f0e9e2] px-2 py-0.5">○ one-time</span>
+            <span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸ postponed</span>
+            <button id="personalExportCsv" class="btn-plain text-[11px] py-0.5 px-2">csv</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+          <table class="w-full text-sm">
+            <thead><tr><th>name</th><th>notes</th><th class="text-right">amount</th><th>deadline</th><th>type</th><th>status</th><th class="text-center">action</th></tr></thead>
+            <tbody id="personalLedgerBody"></tbody>
+          </table>
+        </div>
+        <div class="grid grid-cols-4 gap-3 mt-4 pt-3 border-t border-[#e2d7ce]">
+          <div><span class="text-[11px] text-[#7f6e5d]">needs total</span><div id="personalNeedsSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">wants total</span><div id="personalWantsSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">expenses total</span><div id="personalCombinedSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">postponed</span><div id="personalPostponedSum" class="text-base stat-number">0.00</div></div>
         </div>
       </div>
-      <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
-        <table class="w-full text-sm">
-          <thead><tr><th>name</th><th>notes</th><th class="text-right">amount</th><th>deadline</th><th>type</th><th>status</th><th class="text-center">action</th></tr></thead>
-          <tbody id="ledgerTableBody"></tbody>
-        </table>
+    </div>
+
+    <!-- personal alerts + projection -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div class="paper p-4"><div class="text-xs font-medium mb-2">⏰ personal upcoming deadlines</div><div id="personalDeadlineAlert" class="text-sm space-y-2 max-h-48 overflow-y-auto"></div></div>
+      <div class="paper p-4"><div class="text-xs font-medium mb-2">📈 personal wants projection</div><div id="personalRecommendations" class="text-sm space-y-2"></div><canvas id="personalProjectionChart" height="100" class="mt-2"></canvas></div>
+    </div>
+
+    <!-- personal charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div class="paper p-4"><div class="text-xs mb-2">personal allocation pie</div><canvas id="personalPieChart" height="200"></canvas></div>
+      <div class="paper p-4"><div class="text-xs mb-2">personal wants trend vs target</div><canvas id="personalTrendChart" height="200"></canvas></div>
+    </div>
+
+    <div class="paper p-4 flex flex-wrap justify-between items-center gap-3">
+      <button id="personalPdfBtn" class="btn-primary py-2 px-5 text-sm">pdf statement</button>
+      <button id="personalResetTargetBtn" class="btn-plain text-sm">reset target</button>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- BUSINESS PAGE (initially hidden) -->
+  <!-- ================================================================ -->
+  <div id="businessPage" class="page-content" style="display: none;">
+    <!-- business selector -->
+    <div class="paper p-4 mb-5">
+      <div class="text-xs text-[#7f6e5d] mb-2">business entity</div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <div id="businessSelector" class="flex flex-wrap gap-1 flex-1"></div>
+        <button id="businessAddBtn" class="btn-plain text-xs">+ new business</button>
+        <button id="businessRenameBtn" class="btn-plain text-xs">rename</button>
+        <button id="businessDeleteBtn" class="btn-plain text-xs">delete</button>
       </div>
-      <div class="grid grid-cols-4 gap-3 mt-4 pt-3 border-t border-[#e2d7ce]">
-        <div><span class="text-[11px] text-[#7f6e5d]">needs total</span><div id="needsSum" class="text-base stat-number">0.00</div></div>
-        <div><span class="text-[11px] text-[#7f6e5d]">wants total</span><div id="wantsSum" class="text-base stat-number">0.00</div></div>
-        <div><span class="text-[11px] text-[#7f6e5d]">expenses total</span><div id="combinedSum" class="text-base stat-number">0.00</div></div>
-        <div><span class="text-[11px] text-[#7f6e5d]">postponed</span><div id="postponedSum" class="text-base stat-number">0.00</div></div>
+    </div>
+
+    <!-- business income -->
+    <div class="paper p-4 mb-5">
+      <div class="flex justify-between items-center mb-3"><div class="text-xs font-medium">💰 business income streams · <span id="currentBusinessLabel">—</span></div><button id="businessAddIncomeBtn" class="btn-plain text-xs">+ add income</button></div>
+      <div id="businessIncomeList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+      <div class="mt-3 pt-2 border-t border-[#e2d7ce] flex justify-between text-sm"><span>total monthly income:</span><span class="font-bold stat-number income-positive" id="businessTotalIncome">0.00</span></div>
+    </div>
+
+    <!-- business wants target -->
+    <div class="paper p-4 mb-5">
+      <div class="text-xs font-medium mb-2">🎯 business wants target · <span id="businessTargetLabel">—</span></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants amount</label><input type="number" id="businessWantsAmount" class="w-full" placeholder="0.00" step="100"></div>
+        <div><label class="text-[11px] text-[#7f6e5d] block mb-1">target wants % of expenses</label><input type="number" id="businessWantsPercent" class="w-full" placeholder="30" step="5" min="0" max="100"></div>
+        <div class="flex items-end"><button id="businessApplyTargetBtn" class="btn-primary w-full py-2 text-sm">apply target</button></div>
       </div>
     </div>
-  </div>
 
-  <!-- deadline alerts + wants projection -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-    <div class="paper p-4">
-      <div class="text-xs font-medium mb-2">⏰ upcoming deadlines (this month)</div>
-      <div id="deadlineAlert" class="text-sm space-y-2 max-h-48 overflow-y-auto"></div>
+    <!-- business month selector -->
+    <div class="paper p-4 mb-5 flex flex-wrap gap-3 items-end justify-between">
+      <div class="flex-1 min-w-[200px]"><label class="text-[11px] uppercase tracking-wide text-[#7f6e5d] block mb-1">planning month</label><input type="month" id="businessMonth" class="w-full"></div>
+      <div class="flex gap-2"><button id="businessJumpToCurrent" class="btn-plain text-xs">📍 current</button><button id="businessProjectForward" class="btn-plain text-xs">🔮 project 3 months</button></div>
     </div>
-    <div class="paper p-4">
-      <div class="text-xs font-medium mb-2">📈 wants projection & reduction plan</div>
-      <div id="wantsRecommendations" class="text-sm space-y-2"></div>
-      <canvas id="projectionChart" height="100" class="mt-2"></canvas>
+
+    <!-- business KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total income</div><div class="text-xl stat-number income-positive" id="businessKpiIncome">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">total expenses</div><div class="text-xl stat-number" id="businessKpiExpenses">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">surplus/deficit</div><div class="text-xl stat-number" id="businessKpiSurplus">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">needs total</div><div class="text-xl stat-number" id="businessNeedsTotal">0.00</div></div>
+      <div class="paper p-3"><div class="text-[11px] text-[#7f6e5d]">wants actual</div><div class="text-xl stat-number" id="businessWantsActual">0.00</div></div>
     </div>
-  </div>
 
-  <!-- charts -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-    <div class="paper p-4"><div class="text-xs mb-2">allocation pie (needs vs wants)</div><canvas id="pieCanvas" height="200"></canvas></div>
-    <div class="paper p-4"><div class="text-xs mb-2">wants trend vs target</div><canvas id="trendCanvas" height="200"></canvas></div>
-  </div>
+    <!-- business expenditure entry -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+      <div class="paper p-4">
+        <div class="flex gap-2 mb-4"><button id="businessNeedsBtn" class="flex-1 btn-plain text-sm py-1.5">needs</button><button id="businessWantsBtn" class="flex-1 btn-plain text-sm py-1.5">wants</button></div>
+        <div class="mb-3 text-xs">active: <span id="businessActiveType" class="font-bold">needs</span></div>
+        <input type="text" id="businessEntryTitle" placeholder="title" class="w-full mb-2 text-sm">
+        <textarea id="businessEntryNotes" rows="2" placeholder="notes" class="w-full mb-2 text-sm"></textarea>
+        <input type="number" id="businessEntryAmount" placeholder="amount" class="w-full mb-2 text-sm">
+        <div class="mb-3"><label class="text-[11px] text-[#7f6e5d] block mb-1">deadline (months from now)</label><input type="number" id="businessDeadlineMonths" class="w-full text-sm" min="0" step="1" value="0"></div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="businessRecurrence" value="monthly" id="businessMonthlyRadio" checked> <span>monthly</span></label>
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="businessRecurrence" value="yearly" id="businessYearlyRadio"> <span>yearly</span></label>
+          <label class="text-xs flex items-center gap-1"><input type="radio" name="businessRecurrence" value="onetime" id="businessOnetimeRadio"> <span>one-time</span></label>
+        </div>
+        <label class="flex items-center gap-2 mb-3 text-xs"><input type="checkbox" id="businessPostponeCheck"> <span>postpone this month</span></label>
+        <button id="businessCommitBtn" class="w-full btn-primary py-2 text-sm">add / update</button>
+        <button id="businessAbortBtn" class="w-full text-[11px] text-[#8e7a66] mt-2 text-left">cancel edit</button>
+      </div>
 
-  <!-- actions -->
-  <div class="paper p-4 flex flex-wrap justify-between items-center gap-3">
-    <button id="pdfReportBtn" class="btn-primary py-2 px-5 text-sm">pdf statement</button>
-    <button id="resetTargetBtn" class="btn-plain text-sm">reset target</button>
-    <button id="hardResetBtn" class="btn-plain text-sm">hard reset all</button>
+      <div class="lg:col-span-2 paper p-4">
+        <div class="flex justify-between items-center mb-3 pb-1 border-b border-[#e2d7ce]">
+          <span class="text-xs">business ledger · <span id="businessEntryCount">0</span> entries</span>
+          <div class="flex gap-2"><span class="text-[10px] bg-[#e8e0d5] px-2 py-0.5">⟳ monthly</span><span class="text-[10px] bg-[#ddd0c0] px-2 py-0.5">📅 yearly</span><span class="text-[10px] bg-[#f0e9e2] px-2 py-0.5">○ one-time</span><span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸ postponed</span><button id="businessExportCsv" class="btn-plain text-[11px] py-0.5 px-2">csv</button></div>
+        </div>
+        <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+          <table class="w-full text-sm"><thead><tr><th>name</th><th>notes</th><th class="text-right">amount</th><th>deadline</th><th>type</th><th>status</th><th class="text-center">action</th></tr></thead><tbody id="businessLedgerBody"></tbody></table>
+        </div>
+        <div class="grid grid-cols-4 gap-3 mt-4 pt-3 border-t border-[#e2d7ce]">
+          <div><span class="text-[11px] text-[#7f6e5d]">needs total</span><div id="businessNeedsSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">wants total</span><div id="businessWantsSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">expenses total</span><div id="businessCombinedSum" class="text-base stat-number">0.00</div></div>
+          <div><span class="text-[11px] text-[#7f6e5d]">postponed</span><div id="businessPostponedSum" class="text-base stat-number">0.00</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- business alerts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div class="paper p-4"><div class="text-xs font-medium mb-2">⏰ business upcoming deadlines</div><div id="businessDeadlineAlert" class="text-sm space-y-2 max-h-48 overflow-y-auto"></div></div>
+      <div class="paper p-4"><div class="text-xs font-medium mb-2">📈 business wants projection</div><div id="businessRecommendations" class="text-sm space-y-2"></div><canvas id="businessProjectionChart" height="100" class="mt-2"></canvas></div>
+    </div>
+
+    <!-- business charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div class="paper p-4"><div class="text-xs mb-2">business allocation pie</div><canvas id="businessPieChart" height="200"></canvas></div>
+      <div class="paper p-4"><div class="text-xs mb-2">business wants trend vs target</div><canvas id="businessTrendChart" height="200"></canvas></div>
+    </div>
+
+    <div class="paper p-4 flex flex-wrap justify-between items-center gap-3">
+      <button id="businessPdfBtn" class="btn-primary py-2 px-5 text-sm">pdf statement</button>
+      <button id="businessResetTargetBtn" class="btn-plain text-sm">reset target</button>
+    </div>
   </div>
 </div>
 
 <script>
-  // =================================================================
-  // MULTI-BUSINESS + PERSONAL PLANNER
-  // Each business/personal has its own: income streams, expenditures, wants target
-  // Data structure: businesses list, per-business income & expenditure stores
-  // =================================================================
+  // ================================================================
+  // COMPLETELY SEPARATE PERSONAL + BUSINESS SYSTEMS
+  // Two independent IndexedDB stores: PersonalDB + BusinessDB
+  // ================================================================
 
-  const DB_NAME = "MultiBusinessPlannerDB";
-  const DB_VERSION = 3;
-  let db = null;
-  let currentBusiness = "personal";
-  let currentType = "needs";
-  let editId = null;
+  // ----- PERSONAL MODULE -----
+  const PersonalDB = {
+    name: "PersonalFinanceDB",
+    version: 1,
+    db: null,
 
-  // per-business target configs (stored in localStorage as JSON)
-  let businessTargets = JSON.parse(localStorage.getItem("businessTargets")) || { personal: { amount: 0, percent: 30 } };
+    async open() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.name, this.version);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => { this.db = request.result; resolve(); };
+        request.onupgradeneeded = (e) => {
+          const dbUp = e.target.result;
+          if (!dbUp.objectStoreNames.contains("expenditures")) {
+            const store = dbUp.createObjectStore("expenditures", { keyPath: "id", autoIncrement: true });
+            store.createIndex("month", "month", { unique: false });
+          }
+          if (!dbUp.objectStoreNames.contains("income")) {
+            dbUp.createObjectStore("income", { keyPath: "id", autoIncrement: true });
+          }
+        };
+      });
+    },
 
-  // DOM elements
-  const monthInput = document.getElementById("plannerMonth");
-  const systemMonthSpan = document.getElementById("systemMonthDisplay");
-  const businessTabsDiv = document.getElementById("businessTabs");
-  const currentBusinessNameSpan = document.getElementById("currentBusinessName");
-  const targetBusinessLabel = document.getElementById("targetBusinessLabel");
-  const kpiIncomeSpan = document.getElementById("kpiIncome");
-  const kpiExpensesSpan = document.getElementById("kpiExpenses");
-  const kpiSurplusSpan = document.getElementById("kpiSurplus");
-  const needsTotalSpan = document.getElementById("needsTotal");
-  const wantsActualSpan = document.getElementById("wantsActual");
-  const needsSumSpan = document.getElementById("needsSum");
-  const wantsSumSpan = document.getElementById("wantsSum");
-  const combinedSumSpan = document.getElementById("combinedSum");
-  const postponedSumSpan = document.getElementById("postponedSum");
-  const ledgerBody = document.getElementById("ledgerTableBody");
-  const entryCountSpan = document.getElementById("entryCountSpan");
-  const activeTypeSpan = document.getElementById("activeTypeLabel");
-  const deadlineAlertDiv = document.getElementById("deadlineAlert");
-  const wantsRecommendationsDiv = document.getElementById("wantsRecommendations");
-  const incomeListDiv = document.getElementById("incomeList");
-  const totalIncomeDisplay = document.getElementById("totalIncomeDisplay");
-  const wantsTargetAmountInput = document.getElementById("wantsTargetAmount");
-  const wantsTargetPercentInput = document.getElementById("wantsTargetPercent");
-  const titleInput = document.getElementById("entryTitle");
-  const notesInput = document.getElementById("entryNotes");
-  const amountInput = document.getElementById("entryAmount");
-  const deadlineMonthsInput = document.getElementById("deadlineMonths");
-  const monthlyRadio = document.getElementById("monthlyRadio");
-  const yearlyRadio = document.getElementById("yearlyRadio");
-  const onetimeRadio = document.getElementById("onetimeRadio");
-  const postponeCheck = document.getElementById("postponeCheckbox");
-  const commitBtn = document.getElementById("commitEntryBtn");
-  const abortBtn = document.getElementById("abortEditBtn");
-  const needsBtn = document.getElementById("needsModeBtn");
-  const wantsBtn = document.getElementById("wantsModeBtn");
-  const jumpToCurrentBtn = document.getElementById("jumpToCurrentBtn");
-  const projectForwardBtn = document.getElementById("projectForwardBtn");
-  const applyTargetBtn = document.getElementById("applyTargetBtn");
-  const resetTargetBtn = document.getElementById("resetTargetBtn");
-  const exportCsvBtn = document.getElementById("exportCsvBtn");
-  const pdfBtn = document.getElementById("pdfReportBtn");
-  const hardResetBtn = document.getElementById("hardResetBtn");
-  const addIncomeBtn = document.getElementById("addIncomeBtn");
-  const addBusinessBtn = document.getElementById("addBusinessBtn");
-  const renameBusinessBtn = document.getElementById("renameBusinessBtn");
-  const deleteBusinessBtn = document.getElementById("deleteBusinessBtn");
-  const pieCanvas = document.getElementById("pieCanvas");
-  const trendCanvas = document.getElementById("trendCanvas");
-  const projectionChartCanvas = document.getElementById("projectionChart");
-
-  let pieChart = null, trendChart = null, projectionChart = null;
-
-  // ----- IndexedDB setup -----
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => { db = request.result; resolve(db); };
-      request.onupgradeneeded = (event) => {
-        const dbUp = event.target.result;
-        if (!dbUp.objectStoreNames.contains("expenditures")) {
-          const store = dbUp.createObjectStore("expenditures", { keyPath: "id", autoIncrement: true });
-          store.createIndex("business_month", ["business", "month"], { unique: false });
-          store.createIndex("business_type", ["business", "type"], { unique: false });
-        }
-        if (!dbUp.objectStoreNames.contains("income")) {
-          const incStore = dbUp.createObjectStore("income", { keyPath: "id", autoIncrement: true });
-          incStore.createIndex("business", "business", { unique: false });
-        }
-        if (!dbUp.objectStoreNames.contains("businesses")) {
-          dbUp.createObjectStore("businesses", { keyPath: "name" });
-        }
-      };
-    });
-  }
-
-  // ----- businesses -----
-  async function getBusinesses() {
-    const tx = db.transaction(["businesses"], "readonly");
-    const store = tx.objectStore("businesses");
-    const all = await new Promise((resolve) => {
-      const data = [];
-      const req = store.openCursor();
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { data.push(cursor.value.name); cursor.continue(); }
-        else resolve(data);
-      };
-    });
-    if (all.length === 0) {
-      await addBusinessInternal("personal");
-      return ["personal"];
-    }
-    return all;
-  }
-
-  async function addBusinessInternal(name) {
-    const tx = db.transaction(["businesses"], "readwrite");
-    const store = tx.objectStore("businesses");
-    await new Promise((resolve, reject) => {
-      const req = store.put({ name });
-      req.onsuccess = resolve;
-      req.onerror = reject;
-    });
-    if (!businessTargets[name]) businessTargets[name] = { amount: 0, percent: 30 };
-    saveTargets();
-    return tx.complete;
-  }
-
-  async function deleteBusinessInternal(name) {
-    if (name === "personal") return;
-    const tx = db.transaction(["businesses", "expenditures", "income"], "readwrite");
-    await new Promise((resolve, reject) => {
-      const req = tx.objectStore("businesses").delete(name);
-      req.onsuccess = resolve;
-      req.onerror = reject;
-    });
-    const expStore = tx.objectStore("expenditures");
-    const expIndex = expStore.index("business_month");
-    const expRange = IDBKeyRange.only(name);
-    const toDeleteExp = [];
-    await new Promise((resolve) => {
-      const req = expIndex.openCursor(expRange);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { toDeleteExp.push(cursor.primaryKey); cursor.continue(); }
-        else resolve();
-      };
-    });
-    for (let id of toDeleteExp) await expStore.delete(id);
-
-    const incStore = tx.objectStore("income");
-    const incIndex = incStore.index("business");
-    const incRange = IDBKeyRange.only(name);
-    const toDeleteInc = [];
-    await new Promise((resolve) => {
-      const req = incIndex.openCursor(incRange);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { toDeleteInc.push(cursor.primaryKey); cursor.continue(); }
-        else resolve();
-      };
-    });
-    for (let id of toDeleteInc) await incStore.delete(id);
-
-    delete businessTargets[name];
-    saveTargets();
-    return tx.complete;
-  }
-
-  async function renameBusinessInternal(oldName, newName) {
-    if (oldName === newName) return;
-    const tx = db.transaction(["businesses", "expenditures", "income"], "readwrite");
-    await new Promise((resolve, reject) => {
-      const req = tx.objectStore("businesses").delete(oldName);
-      req.onsuccess = resolve;
-      req.onerror = reject;
-    });
-    await new Promise((resolve, reject) => {
-      const req = tx.objectStore("businesses").put({ name: newName });
-      req.onsuccess = resolve;
-      req.onerror = reject;
-    });
-    const expStore = tx.objectStore("expenditures");
-    const expIndex = expStore.index("business_month");
-    const expRange = IDBKeyRange.only(oldName);
-    const toUpdateExp = [];
-    await new Promise((resolve) => {
-      const req = expIndex.openCursor(expRange);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { toUpdateExp.push(cursor.value); cursor.continue(); }
-        else resolve();
-      };
-    });
-    for (let entry of toUpdateExp) {
-      entry.business = newName;
-      await expStore.put(entry);
-    }
-    const incStore = tx.objectStore("income");
-    const incIndex = incStore.index("business");
-    const incRange = IDBKeyRange.only(oldName);
-    const toUpdateInc = [];
-    await new Promise((resolve) => {
-      const req = incIndex.openCursor(incRange);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { toUpdateInc.push(cursor.value); cursor.continue(); }
-        else resolve();
-      };
-    });
-    for (let inc of toUpdateInc) {
-      inc.business = newName;
-      await incStore.put(inc);
-    }
-    if (businessTargets[oldName]) {
-      businessTargets[newName] = businessTargets[oldName];
-      delete businessTargets[oldName];
-      saveTargets();
-    }
-    return tx.complete;
-  }
-
-  // ----- Expenditure CRUD -----
-  async function getExpenditures(business, month, type = null) {
-    const tx = db.transaction(["expenditures"], "readonly");
-    const store = tx.objectStore("expenditures");
-    const index = store.index("business_month");
-    const range = IDBKeyRange.only([business, month]);
-    const entries = await new Promise((resolve) => {
-      const data = [];
-      const req = index.openCursor(range);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { data.push(cursor.value); cursor.continue(); }
-        else resolve(data);
-      };
-    });
-    if (type) return entries.filter(e => e.type === type);
-    return entries;
-  }
-
-  async function getAllExpenditures(business) {
-    const tx = db.transaction(["expenditures"], "readonly");
-    const store = tx.objectStore("expenditures");
-    const index = store.index("business_month");
-    const range = IDBKeyRange.only(business);
-    return await new Promise((resolve) => {
-      const data = [];
-      const req = index.openCursor(range);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { data.push(cursor.value); cursor.continue(); }
-        else resolve(data);
-      };
-    });
-  }
-
-  async function saveExpenditure(entry) {
-    const tx = db.transaction(["expenditures"], "readwrite");
-    const store = tx.objectStore("expenditures");
-    if (entry.id) await new Promise((resolve, reject) => { const req = store.put(entry); req.onsuccess = resolve; req.onerror = reject; });
-    else await new Promise((resolve, reject) => { const req = store.add(entry); req.onsuccess = resolve; req.onerror = reject; });
-    return tx.complete;
-  }
-
-  async function deleteExpenditure(id) {
-    const tx = db.transaction(["expenditures"], "readwrite");
-    const store = tx.objectStore("expenditures");
-    await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
-    return tx.complete;
-  }
-
-  // ----- Income CRUD -----
-  async function getIncomeStreams(business) {
-    const tx = db.transaction(["income"], "readonly");
-    const store = tx.objectStore("income");
-    const index = store.index("business");
-    const range = IDBKeyRange.only(business);
-    return await new Promise((resolve) => {
-      const data = [];
-      const req = index.openCursor(range);
-      req.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) { data.push(cursor.value); cursor.continue(); }
-        else resolve(data);
-      };
-    });
-  }
-
-  async function saveIncomeStream(stream) {
-    const tx = db.transaction(["income"], "readwrite");
-    const store = tx.objectStore("income");
-    if (stream.id) await new Promise((resolve, reject) => { const req = store.put(stream); req.onsuccess = resolve; req.onerror = reject; });
-    else await new Promise((resolve, reject) => { const req = store.add(stream); req.onsuccess = resolve; req.onerror = reject; });
-    return tx.complete;
-  }
-
-  async function deleteIncomeStream(id) {
-    const tx = db.transaction(["income"], "readwrite");
-    const store = tx.objectStore("income");
-    await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
-    return tx.complete;
-  }
-
-  // ----- target helpers -----
-  function saveTargets() { localStorage.setItem("businessTargets", JSON.stringify(businessTargets)); }
-  function getCurrentTarget() {
-    if (!businessTargets[currentBusiness]) businessTargets[currentBusiness] = { amount: 0, percent: 30 };
-    return businessTargets[currentBusiness];
-  }
-  function updateCurrentTarget(amount, percent) {
-    businessTargets[currentBusiness] = { amount, percent };
-    saveTargets();
-  }
-
-  // ----- deadline helpers -----
-  function addMonths(dateStr, months) {
-    const [year, month] = dateStr.split("-").map(Number);
-    let newYear = year, newMonth = month + months;
-    while (newMonth > 12) { newYear++; newMonth -= 12; }
-    return `${newYear}-${String(newMonth).padStart(2,'0')}`;
-  }
-  function monthsBetween(fromStr, toStr) {
-    const [y1, m1] = fromStr.split("-").map(Number);
-    const [y2, m2] = toStr.split("-").map(Number);
-    return (y2 - y1) * 12 + (m2 - m1);
-  }
-
-  // ----- commit expenditure -----
-  async function commitEntry() {
-    const title = titleInput.value.trim();
-    const notes = notesInput.value.trim();
-    const amount = parseFloat(amountInput.value);
-    const recurrence = monthlyRadio.checked ? "monthly" : (yearlyRadio.checked ? "yearly" : "onetime");
-    const postponed = postponeCheck.checked;
-    let deadlineMonths = parseInt(deadlineMonthsInput.value);
-    if (isNaN(deadlineMonths)) deadlineMonths = 0;
-    if (!title || isNaN(amount) || amount <= 0) { alert("title and positive amount required"); return; }
-
-    const month = getSelectedMonth();
-    let deadlineDueMonth = null;
-    if (deadlineMonths > 0) deadlineDueMonth = addMonths(month, deadlineMonths);
-
-    if (editId !== null) {
-      const tx = db.transaction(["expenditures"], "readwrite");
+    async getExpenditures(month) {
+      const tx = this.db.transaction(["expenditures"], "readonly");
       const store = tx.objectStore("expenditures");
-      const existing = await new Promise((resolve) => { const req = store.get(editId); req.onsuccess = () => resolve(req.result); });
-      if (existing) {
-        existing.name = title; existing.desc = notes; existing.amount = amount; existing.recurrence = recurrence;
-        existing.postponed = postponed; existing.deadlineMonths = deadlineMonths; existing.deadlineDueMonth = deadlineDueMonth;
-        await saveExpenditure(existing);
-        editId = null;
-      }
-    } else {
-      const newEntry = {
-        business: currentBusiness, month: month, type: currentType, name: title, desc: notes, amount: amount,
-        recurrence: recurrence, postponed: postponed, deadlineMonths: deadlineMonths, deadlineDueMonth: deadlineDueMonth,
-        originalMonth: recurrence === "yearly" ? month : null, createdAt: Date.now()
-      };
-      await saveExpenditure(newEntry);
-    }
-    resetForm();
-    await fullRender();
-  }
+      const index = store.index("month");
+      const range = IDBKeyRange.only(month);
+      return new Promise((resolve) => {
+        const data = [];
+        const req = index.openCursor(range);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
 
-  async function editEntry(id) {
-    const tx = db.transaction(["expenditures"], "readonly");
-    const store = tx.objectStore("expenditures");
-    const entry = await new Promise((resolve) => { const req = store.get(id); req.onsuccess = () => resolve(req.result); });
-    if (!entry) return;
-    titleInput.value = entry.name; notesInput.value = entry.desc || ""; amountInput.value = entry.amount;
-    if (entry.recurrence === "monthly") monthlyRadio.checked = true;
-    else if (entry.recurrence === "yearly") yearlyRadio.checked = true;
-    else onetimeRadio.checked = true;
-    postponeCheck.checked = entry.postponed || false;
-    deadlineMonthsInput.value = entry.deadlineMonths || 0;
-    editId = entry.id;
-  }
+    async getAllExpenditures() {
+      const tx = this.db.transaction(["expenditures"], "readonly");
+      const store = tx.objectStore("expenditures");
+      return new Promise((resolve) => {
+        const data = [];
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
 
-  async function deleteEntry(id) { await deleteExpenditure(id); if (editId === id) resetForm(); await fullRender(); }
-  async function togglePostpone(id) {
-    const tx = db.transaction(["expenditures"], "readwrite");
-    const store = tx.objectStore("expenditures");
-    const entry = await new Promise((resolve) => { const req = store.get(id); req.onsuccess = () => resolve(req.result); });
-    if (entry) { entry.postponed = !entry.postponed; await saveExpenditure(entry); await fullRender(); }
-  }
+    async saveExpenditure(entry) {
+      const tx = this.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      if (entry.id) await new Promise((resolve, reject) => { const req = store.put(entry); req.onsuccess = resolve; req.onerror = reject; });
+      else await new Promise((resolve, reject) => { const req = store.add(entry); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
 
-  // ----- income UI -----
-  async function renderIncomeList() {
-    const streams = await getIncomeStreams(currentBusiness);
-    const total = streams.reduce((sum, s) => sum + s.amount, 0);
-    totalIncomeDisplay.innerText = total.toFixed(2);
-    incomeListDiv.innerHTML = streams.map(s => `
-      <div class="flex justify-between items-center text-sm border-b border-[#e2d7ce] py-2">
-        <div><span class="font-medium">${escapeHtml(s.name)}</span><br><span class="text-[10px] text-[#8e7a66]">${escapeHtml(s.method)}</span></div>
-        <div class="flex items-center gap-3">
-          <span class="stat-number income-positive">${s.amount.toFixed(2)}</span>
-          <button class="btn-plain text-[10px] px-2 py-0.5" onclick="editIncome(${s.id})">edit</button>
-          <button class="btn-plain text-[10px] px-2 py-0.5" onclick="deleteIncome(${s.id})">del</button>
-        </div>
-      </div>
-    `).join("");
-    if (streams.length === 0) incomeListDiv.innerHTML = "<div class='text-[#8e7a66] text-xs p-2'>no income streams — add salary, freelance, sales, etc</div>";
-    return total;
-  }
+    async deleteExpenditure(id) {
+      const tx = this.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
 
-  window.addIncome = async function() {
-    const name = prompt("income source name (e.g., salary, freelance, product sales):");
-    if (!name) return;
-    const method = prompt("acquisition method (e.g., employment, contract, ecommerce):");
-    const amount = parseFloat(prompt("monthly amount:"));
-    if (isNaN(amount) || amount <= 0) { alert("valid amount required"); return; }
-    await saveIncomeStream({ business: currentBusiness, name: name.trim(), method: method || "—", amount: amount });
-    await fullRender();
-  };
+    async getIncome() {
+      const tx = this.db.transaction(["income"], "readonly");
+      const store = tx.objectStore("income");
+      return new Promise((resolve) => {
+        const data = [];
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
 
-  window.editIncome = async function(id) {
-    const streams = await getIncomeStreams(currentBusiness);
-    const stream = streams.find(s => s.id === id);
-    if (!stream) return;
-    const name = prompt("income source name:", stream.name);
-    if (!name) return;
-    const method = prompt("acquisition method:", stream.method);
-    const amount = parseFloat(prompt("monthly amount:", stream.amount));
-    if (isNaN(amount) || amount <= 0) { alert("valid amount required"); return; }
-    stream.name = name.trim(); stream.method = method || "—"; stream.amount = amount;
-    await saveIncomeStream(stream);
-    await fullRender();
-  };
+    async saveIncome(stream) {
+      const tx = this.db.transaction(["income"], "readwrite");
+      const store = tx.objectStore("income");
+      if (stream.id) await new Promise((resolve, reject) => { const req = store.put(stream); req.onsuccess = resolve; req.onerror = reject; });
+      else await new Promise((resolve, reject) => { const req = store.add(stream); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
 
-  window.deleteIncome = async function(id) {
-    if (confirm("delete this income stream?")) {
-      await deleteIncomeStream(id);
-      await fullRender();
+    async deleteIncome(id) {
+      const tx = this.db.transaction(["income"], "readwrite");
+      const store = tx.objectStore("income");
+      await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
     }
   };
 
-  // ----- business UI -----
-  async function renderBusinessTabs() {
-    const businesses = await getBusinesses();
-    businessTabsDiv.innerHTML = businesses.map(biz =>
-      `<button class="business-tab px-3 py-1 text-sm ${biz === currentBusiness ? 'active bg-[#f5f0ea]' : ''}" onclick="switchBusiness('${biz}')">${biz}</button>`
-    ).join("");
-  }
+  // ----- BUSINESS MODULE (multi-business) -----
+  const BusinessDB = {
+    name: "BusinessFinanceDB",
+    version: 2,
+    db: null,
+    currentBusiness: "main",
 
-  window.switchBusiness = async function(biz) {
-    currentBusiness = biz;
-    currentBusinessNameSpan.innerText = biz;
-    targetBusinessLabel.innerText = biz;
-    const target = getCurrentTarget();
-    wantsTargetAmountInput.value = target.amount || "";
-    wantsTargetPercentInput.value = target.percent;
-    resetForm();
-    await fullRender();
+    async open() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.name, this.version);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => { this.db = request.result; resolve(); };
+        request.onupgradeneeded = (e) => {
+          const dbUp = e.target.result;
+          if (!dbUp.objectStoreNames.contains("expenditures")) {
+            const store = dbUp.createObjectStore("expenditures", { keyPath: "id", autoIncrement: true });
+            store.createIndex("business_month", ["business", "month"], { unique: false });
+          }
+          if (!dbUp.objectStoreNames.contains("income")) {
+            const incStore = dbUp.createObjectStore("income", { keyPath: "id", autoIncrement: true });
+            incStore.createIndex("business", "business", { unique: false });
+          }
+          if (!dbUp.objectStoreNames.contains("businesses")) {
+            dbUp.createObjectStore("businesses", { keyPath: "name" });
+          }
+        };
+      });
+    },
+
+    async getBusinesses() {
+      const tx = this.db.transaction(["businesses"], "readonly");
+      const store = tx.objectStore("businesses");
+      return new Promise((resolve) => {
+        const data = [];
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value.name); cursor.continue(); }
+          else { if (data.length === 0) data.push("main"); resolve(data); }
+        };
+      });
+    },
+
+    async addBusiness(name) {
+      const tx = this.db.transaction(["businesses"], "readwrite");
+      const store = tx.objectStore("businesses");
+      await new Promise((resolve, reject) => { const req = store.put({ name }); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
+
+    async deleteBusiness(name) {
+      if (name === "main") return;
+      const tx = this.db.transaction(["businesses", "expenditures", "income"], "readwrite");
+      await new Promise((resolve, reject) => { const req = tx.objectStore("businesses").delete(name); req.onsuccess = resolve; req.onerror = reject; });
+      const expStore = tx.objectStore("expenditures");
+      const expIndex = expStore.index("business_month");
+      const expRange = IDBKeyRange.only(name);
+      const toDelExp = [];
+      await new Promise((resolve) => {
+        const req = expIndex.openCursor(expRange);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { toDelExp.push(cursor.primaryKey); cursor.continue(); }
+          else resolve();
+        };
+      });
+      for (let id of toDelExp) await expStore.delete(id);
+      const incStore = tx.objectStore("income");
+      const incIndex = incStore.index("business");
+      const incRange = IDBKeyRange.only(name);
+      const toDelInc = [];
+      await new Promise((resolve) => {
+        const req = incIndex.openCursor(incRange);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { toDelInc.push(cursor.primaryKey); cursor.continue(); }
+          else resolve();
+        };
+      });
+      for (let id of toDelInc) await incStore.delete(id);
+      return tx.complete;
+    },
+
+    async renameBusiness(oldName, newName) {
+      if (oldName === newName) return;
+      const tx = this.db.transaction(["businesses", "expenditures", "income"], "readwrite");
+      await new Promise((resolve, reject) => { const req = tx.objectStore("businesses").delete(oldName); req.onsuccess = resolve; req.onerror = reject; });
+      await new Promise((resolve, reject) => { const req = tx.objectStore("businesses").put({ name: newName }); req.onsuccess = resolve; req.onerror = reject; });
+      const expStore = tx.objectStore("expenditures");
+      const expIndex = expStore.index("business_month");
+      const expRange = IDBKeyRange.only(oldName);
+      const toUpdateExp = [];
+      await new Promise((resolve) => {
+        const req = expIndex.openCursor(expRange);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { toUpdateExp.push(cursor.value); cursor.continue(); }
+          else resolve();
+        };
+      });
+      for (let entry of toUpdateExp) { entry.business = newName; await expStore.put(entry); }
+      const incStore = tx.objectStore("income");
+      const incIndex = incStore.index("business");
+      const incRange = IDBKeyRange.only(oldName);
+      const toUpdateInc = [];
+      await new Promise((resolve) => {
+        const req = incIndex.openCursor(incRange);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { toUpdateInc.push(cursor.value); cursor.continue(); }
+          else resolve();
+        };
+      });
+      for (let inc of toUpdateInc) { inc.business = newName; await incStore.put(inc); }
+      return tx.complete;
+    },
+
+    async getExpenditures(business, month) {
+      const tx = this.db.transaction(["expenditures"], "readonly");
+      const store = tx.objectStore("expenditures");
+      const index = store.index("business_month");
+      const range = IDBKeyRange.only([business, month]);
+      return new Promise((resolve) => {
+        const data = [];
+        const req = index.openCursor(range);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
+
+    async getAllExpenditures(business) {
+      const tx = this.db.transaction(["expenditures"], "readonly");
+      const store = tx.objectStore("expenditures");
+      const index = store.index("business_month");
+      const range = IDBKeyRange.only(business);
+      return new Promise((resolve) => {
+        const data = [];
+        const req = index.openCursor(range);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
+
+    async saveExpenditure(entry) {
+      const tx = this.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      if (entry.id) await new Promise((resolve, reject) => { const req = store.put(entry); req.onsuccess = resolve; req.onerror = reject; });
+      else await new Promise((resolve, reject) => { const req = store.add(entry); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
+
+    async deleteExpenditure(id) {
+      const tx = this.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
+
+    async getIncome(business) {
+      const tx = this.db.transaction(["income"], "readonly");
+      const store = tx.objectStore("income");
+      const index = store.index("business");
+      const range = IDBKeyRange.only(business);
+      return new Promise((resolve) => {
+        const data = [];
+        const req = index.openCursor(range);
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) { data.push(cursor.value); cursor.continue(); }
+          else resolve(data);
+        };
+      });
+    },
+
+    async saveIncome(stream) {
+      const tx = this.db.transaction(["income"], "readwrite");
+      const store = tx.objectStore("income");
+      if (stream.id) await new Promise((resolve, reject) => { const req = store.put(stream); req.onsuccess = resolve; req.onerror = reject; });
+      else await new Promise((resolve, reject) => { const req = store.add(stream); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    },
+
+    async deleteIncome(id) {
+      const tx = this.db.transaction(["income"], "readwrite");
+      const store = tx.objectStore("income");
+      await new Promise((resolve, reject) => { const req = store.delete(id); req.onsuccess = resolve; req.onerror = reject; });
+      return tx.complete;
+    }
   };
 
-  async function addBusiness() {
-    let name = prompt("business name (e.g., bakery, consulting):");
-    if (name && name.trim() && !(await getBusinesses()).includes(name.trim())) {
-      await addBusinessInternal(name.trim());
-      currentBusiness = name.trim();
-      await renderBusinessTabs();
-      await fullRender();
-    } else alert("invalid or duplicate name");
-  }
+  // ----- shared helpers -----
+  function getSystemMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function addMonths(dateStr, months) { const [y,m] = dateStr.split("-").map(Number); let ny=y, nm=m+months; while(nm>12){ny++;nm-=12;} return `${ny}-${String(nm).padStart(2,'0')}`; }
+  function monthsBetween(from, to) { const [y1,m1]=from.split("-").map(Number); const [y2,m2]=to.split("-").map(Number); return (y2-y1)*12+(m2-m1); }
+  function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-  async function renameBusiness() {
-    let newName = prompt("new name for " + currentBusiness);
-    if (newName && newName.trim() && newName !== currentBusiness && !(await getBusinesses()).includes(newName.trim())) {
-      await renameBusinessInternal(currentBusiness, newName.trim());
-      currentBusiness = newName.trim();
-      await renderBusinessTabs();
-      await fullRender();
-    } else alert("invalid name");
-  }
+  // ----- Personal State & Render -----
+  let personalEditId = null;
+  let personalActiveType = "needs";
+  let personalTargetAmount = parseFloat(localStorage.getItem("personalTargetAmount")) || 0;
+  let personalTargetPercent = parseFloat(localStorage.getItem("personalTargetPercent")) || 30;
+  let personalPieChart = null, personalTrendChart = null, personalProjChart = null;
 
-  async function deleteBusiness() {
-    const businesses = await getBusinesses();
-    if (businesses.length === 1) { alert("cannot delete last business (personal)"); return; }
-    if (confirm(`delete "${currentBusiness}" and all its data?`)) {
-      await deleteBusinessInternal(currentBusiness);
-      const remaining = await getBusinesses();
-      currentBusiness = remaining[0] || "personal";
-      await renderBusinessTabs();
-      await fullRender();
-    }
-  }
-
-  // ----- analytics -----
-  async function getWantsHistory() {
-    const all = await getAllExpenditures(currentBusiness);
-    const months = [...new Set(all.map(e => e.month))].sort();
-    const history = [];
-    for (let month of months) {
-      const monthEntries = all.filter(e => e.month === month);
-      const wantsTotal = monthEntries.filter(e => e.type === "wants" && !e.postponed).reduce((s,e)=>s+e.amount,0);
-      history.push({ month, wants: wantsTotal });
-    }
-    return history;
-  }
-
-  async function getDeadlineAlerts(currentMonth) {
-    const all = await getAllExpenditures(currentBusiness);
-    const alerts = [];
-    for (let entry of all) {
-      if (entry.postponed) continue;
-      if (entry.deadlineMonths && entry.deadlineMonths > 0 && entry.deadlineDueMonth) {
-        const monthsLeft = monthsBetween(currentMonth, entry.deadlineDueMonth);
-        if (monthsLeft >= 0 && monthsLeft <= 1) {
-          alerts.push({ ...entry, monthsLeft });
-        }
-      }
-    }
-    return alerts;
-  }
-
-  async function generateRecommendations(currentWants, targetAmount, targetPercent, totalSpend) {
-    const recs = [];
-    if (targetAmount > 0 && currentWants > targetAmount) {
-      const excess = currentWants - targetAmount;
-      recs.push(`⚠️ wants exceed target by ${excess.toFixed(2)}. reduce by ${excess.toFixed(2)}.`);
-    }
-    if (targetPercent > 0 && totalSpend > 0) {
-      const currentPercent = (currentWants / totalSpend) * 100;
-      if (currentPercent > targetPercent) {
-        const neededReduction = currentWants - (totalSpend * targetPercent / 100);
-        recs.push(`📉 wants are ${currentPercent.toFixed(0)}% of expenses (target ${targetPercent}%). reduce wants by ~${neededReduction.toFixed(2)}.`);
-      } else if (currentPercent < targetPercent) recs.push(`✓ wants below target (${currentPercent.toFixed(0)}% vs ${targetPercent}%).`);
-    }
-    const history = await getWantsHistory();
-    if (history.length >= 2) {
-      const last = history[history.length-1].wants, prev = history[history.length-2].wants;
-      if (last > prev) recs.push(`📈 wants increased from previous month by ${(last-prev).toFixed(2)} — review.`);
-    }
-    if (recs.length === 0) recs.push("✅ wants within target range.");
-    return recs;
-  }
-
-  async function generateProjection() {
-    const history = await getWantsHistory();
-    if (history.length === 0) return { projection: [], avg: 0, trend: 0 };
-    const values = history.map(h => h.wants);
-    const avg = values.reduce((a,b)=>a+b,0)/values.length;
-    const trend = values.length >= 2 ? values[values.length-1] - values[values.length-2] : 0;
-    const projected = [];
-    const lastMonth = history[history.length-1].month;
-    const [year, month] = lastMonth.split("-").map(Number);
-    for (let i = 1; i <= 3; i++) {
-      let nextYear = year, nextMonth = month + i;
-      if (nextMonth > 12) { nextYear++; nextMonth -= 12; }
-      const monthStr = `${nextYear}-${String(nextMonth).padStart(2,'0')}`;
-      projected.push({ month: monthStr, wants: Math.max(0, avg + trend * i) });
-    }
-    return { projection: projected, avg, trend };
-  }
-
-  // ----- main render -----
-  async function fullRender() {
-    const month = getSelectedMonth();
-    const expenditures = await getExpenditures(currentBusiness, month);
-    const incomeTotal = await renderIncomeList();
-    const target = getCurrentTarget();
-
+  async function personalRender() {
+    const month = document.getElementById("personalMonth").value || getSystemMonth();
+    const expenditures = await PersonalDB.getExpenditures(month);
+    const incomeStreams = await PersonalDB.getIncome();
+    const incomeTotal = incomeStreams.reduce((s,i)=>s+i.amount,0);
     const needsEntries = expenditures.filter(e => e.type === "needs" && !e.postponed);
     const wantsEntries = expenditures.filter(e => e.type === "wants" && !e.postponed);
     const totalNeeds = needsEntries.reduce((s,i)=>s+i.amount,0);
@@ -756,207 +591,313 @@
     const totalExpenses = totalNeeds + totalWants;
     const postponedTotal = expenditures.filter(e=>e.postponed).reduce((s,e)=>s+e.amount,0);
     const surplus = incomeTotal - totalExpenses;
-
-    let effectiveTarget = target.amount;
-    if (target.percent > 0 && totalExpenses > 0) {
-      const percentTarget = totalExpenses * target.percent / 100;
+    let effectiveTarget = personalTargetAmount;
+    if (personalTargetPercent > 0 && totalExpenses > 0) {
+      const percentTarget = totalExpenses * personalTargetPercent / 100;
       if (effectiveTarget === 0 || percentTarget < effectiveTarget) effectiveTarget = percentTarget;
     }
+    document.getElementById("personalTotalIncome").innerText = incomeTotal.toFixed(2);
+    document.getElementById("personalKpiIncome").innerText = incomeTotal.toFixed(2);
+    document.getElementById("personalKpiExpenses").innerText = totalExpenses.toFixed(2);
+    document.getElementById("personalKpiSurplus").innerText = surplus.toFixed(2);
+    document.getElementById("personalNeedsTotal").innerText = totalNeeds.toFixed(2);
+    document.getElementById("personalWantsActual").innerText = totalWants.toFixed(2);
+    document.getElementById("personalNeedsSum").innerText = totalNeeds.toFixed(2);
+    document.getElementById("personalWantsSum").innerText = totalWants.toFixed(2);
+    document.getElementById("personalCombinedSum").innerText = totalExpenses.toFixed(2);
+    document.getElementById("personalPostponedSum").innerText = postponedTotal.toFixed(2);
 
-    kpiIncomeSpan.innerText = incomeTotal.toFixed(2);
-    kpiExpensesSpan.innerText = totalExpenses.toFixed(2);
-    kpiSurplusSpan.innerText = surplus.toFixed(2);
-    if (surplus >= 0) kpiSurplusSpan.classList.add("income-positive");
-    else kpiSurplusSpan.classList.remove("income-positive");
-
-    needsSumSpan.innerText = totalNeeds.toFixed(2);
-    wantsSumSpan.innerText = totalWants.toFixed(2);
-    combinedSumSpan.innerText = totalExpenses.toFixed(2);
-    postponedSumSpan.innerText = postponedTotal.toFixed(2);
-    needsTotalSpan.innerText = totalNeeds.toFixed(2);
-    wantsActualSpan.innerText = totalWants.toFixed(2);
-
-    const currentEntries = expenditures.filter(e => e.type === currentType);
-    entryCountSpan.innerText = currentEntries.length;
-    ledgerBody.innerHTML = "";
-    if (currentEntries.length === 0) {
-      ledgerBody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-[#8e7a66]">— no entries —</td></tr>`;
-    } else {
-      currentEntries.forEach((entry) => {
-        const row = ledgerBody.insertRow();
+    const currentEntries = expenditures.filter(e => e.type === personalActiveType);
+    document.getElementById("personalEntryCount").innerText = currentEntries.length;
+    const tbody = document.getElementById("personalLedgerBody");
+    tbody.innerHTML = "";
+    if (currentEntries.length === 0) tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-[#8e7a66]">— no entries —</td></tr>`;
+    else {
+      currentEntries.forEach(entry => {
+        const row = tbody.insertRow();
         row.insertCell(0).innerHTML = `<span class="font-mono text-sm">${escapeHtml(entry.name)}</span>`;
         row.insertCell(1).innerHTML = `<span class="text-xs text-[#6b5b4e]">${escapeHtml(entry.desc || '')}</span>`;
         row.insertCell(2).innerHTML = `<span class="stat-number text-right block">${entry.amount.toFixed(2)}</span>`;
-        const deadlineText = entry.deadlineMonths ? `${entry.deadlineMonths} month(s)` : "—";
-        row.insertCell(3).innerHTML = `<span class="text-xs">${deadlineText}</span>`;
+        row.insertCell(3).innerHTML = `<span class="text-xs">${entry.deadlineMonths ? entry.deadlineMonths + " month(s)" : "—"}</span>`;
         let recurBadge = entry.recurrence === "monthly" ? '<span class="text-[10px] bg-[#e8e0d5] px-2 py-0.5">⟳</span>' : (entry.recurrence === "yearly" ? '<span class="text-[10px] bg-[#ddd0c0] px-2 py-0.5">📅</span>' : '<span class="text-[10px] bg-[#f0e9e2] px-2 py-0.5">○</span>');
         row.insertCell(4).innerHTML = recurBadge;
-        const statusBadge = entry.postponed ? '<span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸</span>' : '<span class="text-[10px] bg-[#e0e8e0] px-2 py-0.5">active</span>';
-        row.insertCell(5).innerHTML = statusBadge;
+        row.insertCell(5).innerHTML = entry.postponed ? '<span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸</span>' : '<span class="text-[10px] bg-[#e0e8e0] px-2 py-0.5">active</span>';
         const actionCell = row.insertCell(6);
         actionCell.className = "text-center";
-        actionCell.innerHTML = `<button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="editEntry(${entry.id})">edit</button><button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="togglePostpone(${entry.id})">⏸/▶</button><button class="btn-plain text-[11px] px-2 py-0.5" onclick="deleteEntry(${entry.id})">del</button>`;
+        actionCell.innerHTML = `<button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="personalEditEntry(${entry.id})">edit</button><button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="personalTogglePostpone(${entry.id})">⏸/▶</button><button class="btn-plain text-[11px] px-2 py-0.5" onclick="personalDeleteEntry(${entry.id})">del</button>`;
       });
     }
-
-    // deadline alerts
-    const alerts = await getDeadlineAlerts(month);
-    if (alerts.length === 0) deadlineAlertDiv.innerHTML = "<div class='text-[#8e7a66] text-xs'>no deadlines due within 1 month</div>";
-    else {
-      deadlineAlertDiv.innerHTML = alerts.map(a => `
-        <div class="${a.monthsLeft === 0 ? 'deadline-urgent' : 'deadline-soon'} p-2 text-xs flex justify-between">
-          <span><strong>${escapeHtml(a.name)}</strong> (${a.type})</span>
-          <span>${a.amount.toFixed(2)} · due ${a.monthsLeft === 0 ? 'THIS MONTH' : `in ${a.monthsLeft} month(s)`}</span>
-        </div>
-      `).join("");
+    // deadlines
+    const allPersonal = await PersonalDB.getAllExpenditures();
+    const alerts = [];
+    for (let e of allPersonal) {
+      if (!e.postponed && e.deadlineMonths && e.deadlineDueMonth) {
+        const left = monthsBetween(month, e.deadlineDueMonth);
+        if (left >= 0 && left <= 1) alerts.push({ ...e, left });
+      }
     }
-
+    const alertDiv = document.getElementById("personalDeadlineAlert");
+    if (alerts.length === 0) alertDiv.innerHTML = "<div class='text-[#8e7a66] text-xs'>no deadlines due within 1 month</div>";
+    else alertDiv.innerHTML = alerts.map(a => `<div class="${a.left === 0 ? 'deadline-urgent' : 'deadline-soon'} p-2 text-xs flex justify-between"><span><strong>${escapeHtml(a.name)}</strong> (${a.type})</span><span>${a.amount.toFixed(2)} · due ${a.left === 0 ? 'THIS MONTH' : `in ${a.left} month(s)`}</span></div>`).join("");
     // recommendations
-    const recs = await generateRecommendations(totalWants, effectiveTarget, target.percent, totalExpenses);
-    wantsRecommendationsDiv.innerHTML = recs.map(r => `<div class="text-xs border-b border-[#e2d7ce] py-1">${r}</div>`).join("");
-
+    let recHtml = "";
+    if (effectiveTarget > 0 && totalWants > effectiveTarget) recHtml += `<div>⚠️ wants exceed target by ${(totalWants-effectiveTarget).toFixed(2)}</div>`;
+    const wantsPct = totalExpenses ? (totalWants/totalExpenses)*100 : 0;
+    if (personalTargetPercent > 0 && wantsPct > personalTargetPercent) recHtml += `<div>📉 wants are ${wantsPct.toFixed(0)}% of expenses (target ${personalTargetPercent}%)</div>`;
+    if (!recHtml) recHtml = "<div>✅ wants within target range</div>";
+    document.getElementById("personalRecommendations").innerHTML = recHtml;
     // projection chart
-    const proj = await generateProjection();
-    if (proj.projection.length && projectionChart) {
-      if (projectionChart) projectionChart.destroy();
-      projectionChart = new Chart(projectionChartCanvas, {
-        type: "line",
-        data: { labels: proj.projection.map(p => p.month), datasets: [{ label: "projected wants", data: proj.projection.map(p => p.wants), borderColor: "#8e7a66", fill: false, tension: 0.2 }] },
-        options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { size: 9 } } } } }
+    const hist = [];
+    const allExp = await PersonalDB.getAllExpenditures();
+    const monthsSet = [...new Set(allExp.map(e=>e.month))].sort();
+    for (let m of monthsSet) {
+      const ws = allExp.filter(e=>e.month===m && e.type==="wants" && !e.postponed).reduce((s,e)=>s+e.amount,0);
+      hist.push({ month: m, wants: ws });
+    }
+    if (hist.length && personalProjChart) personalProjChart.destroy();
+    if (hist.length) {
+      const vals = hist.map(h=>h.wants);
+      const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+      const trend = vals.length>=2 ? vals[vals.length-1]-vals[vals.length-2] : 0;
+      const proj = [];
+      const last = hist[hist.length-1].month;
+      const [ly,lm] = last.split("-").map(Number);
+      for (let i=1;i<=3;i++) { let ny=ly, nm=lm+i; while(nm>12){ny++;nm-=12;} proj.push({ month: `${ny}-${String(nm).padStart(2,'0')}`, wants: Math.max(0, avg+trend*i) }); }
+      personalProjChart = new Chart(document.getElementById("personalProjectionChart"), { type: "line", data: { labels: proj.map(p=>p.month), datasets: [{ label: "projected wants", data: proj.map(p=>p.wants), borderColor: "#8e7a66", fill: false }] }, options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { size: 9 } } } } } });
+    }
+    // pie
+    if (personalPieChart) personalPieChart.destroy();
+    personalPieChart = new Chart(document.getElementById("personalPieChart"), { type: "pie", data: { labels: ["needs","wants"], datasets: [{ data: [totalNeeds,totalWants], backgroundColor: ["#b8aa98","#9e8c7a"] }] }, options: { responsive: true } });
+    // trend
+    if (personalTrendChart) personalTrendChart.destroy();
+    personalTrendChart = new Chart(document.getElementById("personalTrendChart"), { type: "line", data: { labels: hist.map(h=>h.month), datasets: [{ label: "actual wants", data: hist.map(h=>h.wants), borderColor: "#8e7a66" }, { label: "target", data: new Array(hist.length).fill(effectiveTarget), borderColor: "#b89a7a", borderDash: [5,5] }] }, options: { responsive: true } });
+  }
+
+  async function personalCommit() {
+    const title = document.getElementById("personalEntryTitle").value.trim();
+    const notes = document.getElementById("personalEntryNotes").value.trim();
+    const amount = parseFloat(document.getElementById("personalEntryAmount").value);
+    const recurrence = document.getElementById("personalMonthlyRadio").checked ? "monthly" : (document.getElementById("personalYearlyRadio").checked ? "yearly" : "onetime");
+    const postponed = document.getElementById("personalPostponeCheck").checked;
+    let deadline = parseInt(document.getElementById("personalDeadlineMonths").value);
+    if (isNaN(deadline)) deadline = 0;
+    if (!title || isNaN(amount) || amount <= 0) { alert("title and amount required"); return; }
+    const month = document.getElementById("personalMonth").value || getSystemMonth();
+    let due = null;
+    if (deadline > 0) due = addMonths(month, deadline);
+    if (personalEditId !== null) {
+      const tx = PersonalDB.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      const existing = await new Promise(resolve => { const req = store.get(personalEditId); req.onsuccess = () => resolve(req.result); });
+      if (existing) { existing.name=title; existing.desc=notes; existing.amount=amount; existing.recurrence=recurrence; existing.postponed=postponed; existing.deadlineMonths=deadline; existing.deadlineDueMonth=due; await PersonalDB.saveExpenditure(existing); personalEditId=null; }
+    } else {
+      await PersonalDB.saveExpenditure({ month, type: personalActiveType, name: title, desc: notes, amount, recurrence, postponed, deadlineMonths: deadline, deadlineDueMonth: due, createdAt: Date.now() });
+    }
+    document.getElementById("personalEntryTitle").value = ""; document.getElementById("personalEntryNotes").value = ""; document.getElementById("personalEntryAmount").value = ""; document.getElementById("personalDeadlineMonths").value = "0"; document.getElementById("personalMonthlyRadio").checked = true; document.getElementById("personalPostponeCheck").checked = false;
+    await personalRender();
+  }
+  window.personalEditEntry = async (id) => { personalEditId = id; const tx = PersonalDB.db.transaction(["expenditures"], "readonly"); const store = tx.objectStore("expenditures"); const e = await new Promise(resolve => { const req = store.get(id); req.onsuccess = () => resolve(req.result); }); if(e){ document.getElementById("personalEntryTitle").value=e.name; document.getElementById("personalEntryNotes").value=e.desc||""; document.getElementById("personalEntryAmount").value=e.amount; document.getElementById("personalDeadlineMonths").value=e.deadlineMonths||0; if(e.recurrence==="monthly") document.getElementById("personalMonthlyRadio").checked=true; else if(e.recurrence==="yearly") document.getElementById("personalYearlyRadio").checked=true; else document.getElementById("personalOnetimeRadio").checked=true; document.getElementById("personalPostponeCheck").checked=e.postponed||false; } };
+  window.personalDeleteEntry = async (id) => { await PersonalDB.deleteExpenditure(id); if(personalEditId===id) personalEditId=null; await personalRender(); };
+  window.personalTogglePostpone = async (id) => { const tx = PersonalDB.db.transaction(["expenditures"], "readwrite"); const store = tx.objectStore("expenditures"); const e = await new Promise(resolve => { const req = store.get(id); req.onsuccess = () => resolve(req.result); }); if(e){ e.postponed = !e.postponed; await PersonalDB.saveExpenditure(e); await personalRender(); } };
+
+  async function personalAddIncome() {
+    const name = prompt("income source name:");
+    if(!name) return;
+    const method = prompt("acquisition method:");
+    const amount = parseFloat(prompt("monthly amount:"));
+    if(isNaN(amount)||amount<=0) return;
+    await PersonalDB.saveIncome({ name: name.trim(), method: method||"—", amount });
+    await personalRender();
+  }
+
+  // ----- Business State & Render (similar but with multi-business) -----
+  let businessEditId = null;
+  let businessActiveType = "needs";
+  let businessTargets = JSON.parse(localStorage.getItem("businessTargets")) || { main: { amount: 0, percent: 30 } };
+  let businessPieChart = null, businessTrendChart = null, businessProjChart = null;
+
+  async function businessRender() {
+    const biz = BusinessDB.currentBusiness;
+    const month = document.getElementById("businessMonth").value || getSystemMonth();
+    const expenditures = await BusinessDB.getExpenditures(biz, month);
+    const incomeStreams = await BusinessDB.getIncome(biz);
+    const incomeTotal = incomeStreams.reduce((s,i)=>s+i.amount,0);
+    const needsEntries = expenditures.filter(e => e.type === "needs" && !e.postponed);
+    const wantsEntries = expenditures.filter(e => e.type === "wants" && !e.postponed);
+    const totalNeeds = needsEntries.reduce((s,i)=>s+i.amount,0);
+    const totalWants = wantsEntries.reduce((s,i)=>s+i.amount,0);
+    const totalExpenses = totalNeeds + totalWants;
+    const postponedTotal = expenditures.filter(e=>e.postponed).reduce((s,e)=>s+e.amount,0);
+    const surplus = incomeTotal - totalExpenses;
+    let target = businessTargets[biz] || { amount: 0, percent: 30 };
+    let effectiveTarget = target.amount;
+    if (target.percent > 0 && totalExpenses > 0) { const pTarget = totalExpenses * target.percent / 100; if (effectiveTarget === 0 || pTarget < effectiveTarget) effectiveTarget = pTarget; }
+    document.getElementById("businessTotalIncome").innerText = incomeTotal.toFixed(2);
+    document.getElementById("businessKpiIncome").innerText = incomeTotal.toFixed(2);
+    document.getElementById("businessKpiExpenses").innerText = totalExpenses.toFixed(2);
+    document.getElementById("businessKpiSurplus").innerText = surplus.toFixed(2);
+    document.getElementById("businessNeedsTotal").innerText = totalNeeds.toFixed(2);
+    document.getElementById("businessWantsActual").innerText = totalWants.toFixed(2);
+    document.getElementById("businessNeedsSum").innerText = totalNeeds.toFixed(2);
+    document.getElementById("businessWantsSum").innerText = totalWants.toFixed(2);
+    document.getElementById("businessCombinedSum").innerText = totalExpenses.toFixed(2);
+    document.getElementById("businessPostponedSum").innerText = postponedTotal.toFixed(2);
+    const currentEntries = expenditures.filter(e => e.type === businessActiveType);
+    document.getElementById("businessEntryCount").innerText = currentEntries.length;
+    const tbody = document.getElementById("businessLedgerBody");
+    tbody.innerHTML = "";
+    if (currentEntries.length === 0) tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-[#8e7a66]">— no entries —</td></tr>`;
+    else {
+      currentEntries.forEach(entry => {
+        const row = tbody.insertRow();
+        row.insertCell(0).innerHTML = `<span class="font-mono text-sm">${escapeHtml(entry.name)}</span>`;
+        row.insertCell(1).innerHTML = `<span class="text-xs text-[#6b5b4e]">${escapeHtml(entry.desc || '')}</span>`;
+        row.insertCell(2).innerHTML = `<span class="stat-number text-right block">${entry.amount.toFixed(2)}</span>`;
+        row.insertCell(3).innerHTML = `<span class="text-xs">${entry.deadlineMonths ? entry.deadlineMonths + " month(s)" : "—"}</span>`;
+        let recurBadge = entry.recurrence === "monthly" ? '<span class="text-[10px] bg-[#e8e0d5] px-2 py-0.5">⟳</span>' : (entry.recurrence === "yearly" ? '<span class="text-[10px] bg-[#ddd0c0] px-2 py-0.5">📅</span>' : '<span class="text-[10px] bg-[#f0e9e2] px-2 py-0.5">○</span>');
+        row.insertCell(4).innerHTML = recurBadge;
+        row.insertCell(5).innerHTML = entry.postponed ? '<span class="text-[10px] bg-[#e8ddd0] px-2 py-0.5">⏸</span>' : '<span class="text-[10px] bg-[#e0e8e0] px-2 py-0.5">active</span>';
+        const actionCell = row.insertCell(6);
+        actionCell.className = "text-center";
+        actionCell.innerHTML = `<button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="businessEditEntry(${entry.id})">edit</button><button class="btn-plain text-[11px] px-2 py-0.5 mr-1" onclick="businessTogglePostpone(${entry.id})">⏸/▶</button><button class="btn-plain text-[11px] px-2 py-0.5" onclick="businessDeleteEntry(${entry.id})">del</button>`;
       });
     }
-
-    // pie chart
-    if (pieChart) pieChart.destroy();
-    pieChart = new Chart(pieCanvas, {
-      type: "pie",
-      data: { labels: ["needs", "wants"], datasets: [{ data: [totalNeeds, totalWants], backgroundColor: ["#b8aa98", "#9e8c7a"], borderWidth: 0 }] },
-      options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { size: 10 } } } } }
-    });
-
-    // trend chart
-    const history = await getWantsHistory();
-    const trendLabels = history.map(h => h.month);
-    const trendValues = history.map(h => h.wants);
-    const targetLine = new Array(history.length).fill(effectiveTarget);
-    if (trendChart) trendChart.destroy();
-    trendChart = new Chart(trendCanvas, {
-      type: "line",
-      data: { labels: trendLabels, datasets: [
-        { label: "actual wants", data: trendValues, borderColor: "#8e7a66", fill: false },
-        { label: "target", data: targetLine, borderColor: "#b89a7a", borderDash: [5,5], fill: false }
-      ] },
-      options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { size: 9 } } } } }
-    });
-  }
-
-  // ----- utilities -----
-  function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-  function getSystemMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
-  function getSelectedMonth() { let val = monthInput.value; if (!val) { val = getSystemMonth(); monthInput.value = val; } return val; }
-  function resetForm() { titleInput.value = ""; notesInput.value = ""; amountInput.value = ""; deadlineMonthsInput.value = "0"; monthlyRadio.checked = true; yearlyRadio.checked = false; onetimeRadio.checked = false; postponeCheck.checked = false; editId = null; }
-
-  function applyTarget() {
-    const amount = parseFloat(wantsTargetAmountInput.value);
-    const percent = parseFloat(wantsTargetPercentInput.value);
-    if (!isNaN(amount)) updateCurrentTarget(amount, isNaN(percent) ? 30 : percent);
-    else if (!isNaN(percent)) updateCurrentTarget(getCurrentTarget().amount, percent);
-    fullRender();
-  }
-  function resetTarget() { updateCurrentTarget(0, 30); wantsTargetAmountInput.value = ""; wantsTargetPercentInput.value = "30"; fullRender(); }
-  async function projectForward() { const proj = await generateProjection(); if (proj.projection.length) alert(`projection:\n${proj.projection.map(p => `${p.month}: ${p.wants.toFixed(2)}`).join("\n")}`); else alert("add historical data first"); }
-
-  async function exportCSV() {
-    const month = getSelectedMonth();
-    const expenditures = await getExpenditures(currentBusiness, month);
-    const income = await getIncomeStreams(currentBusiness);
-    let csv = `# BUSINESS: ${currentBusiness}\n# INCOME STREAMS\nname,method,amount\n`;
-    income.forEach(i => csv += `${i.name},${i.method},${i.amount}\n`);
-    csv += "\n# EXPENDITURES\ntype,name,description,amount,recurrence,postponed,deadlineMonths\n";
-    expenditures.forEach(e => csv += `${e.type},${e.name},${e.desc || ""},${e.amount},${e.recurrence},${e.postponed},${e.deadlineMonths || 0}\n`);
-    const blob = new Blob([csv], {type:"text/csv"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${currentBusiness}_${month}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  async function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const month = getSelectedMonth();
-    const expenditures = await getExpenditures(currentBusiness, month);
-    const income = await getIncomeStreams(currentBusiness);
-    const incomeTotal = income.reduce((s,i)=>s+i.amount,0);
-    const active = expenditures.filter(e => !e.postponed);
-    const tn = active.filter(e=>e.type==="needs").reduce((a,b)=>a+b.amount,0);
-    const tw = active.filter(e=>e.type==="wants").reduce((a,b)=>a+b.amount,0);
-    doc.setFont("courier");
-    doc.setFontSize(13);
-    doc.text(`${currentBusiness.toUpperCase()} · MONTHLY STATEMENT`, 15, 20);
-    doc.setFontSize(10);
-    doc.text(`month: ${month}`, 15, 30);
-    doc.text(`income: ${incomeTotal.toFixed(2)} | expenses: ${(tn+tw).toFixed(2)} | surplus: ${(incomeTotal - tn - tw).toFixed(2)}`, 15, 40);
-    let y = 55;
-    doc.text("INCOME STREAMS", 15, y); y+=6;
-    income.forEach(i => { doc.text(`- ${i.name} (${i.method}) : ${i.amount.toFixed(2)}`, 18, y); y+=5; if(y>270){ doc.addPage(); y=20; } });
-    y+=5;
-    doc.text("NEEDS", 15, y); y+=6;
-    active.filter(e=>e.type==="needs").forEach(i => { doc.text(`- ${i.name} [${i.recurrence}] : ${i.amount.toFixed(2)}`, 18, y); y+=5; if(y>270){ doc.addPage(); y=20; } });
-    y+=5;
-    doc.text("WANTS", 15, y); y+=6;
-    active.filter(e=>e.type==="wants").forEach(i => { doc.text(`- ${i.name} [${i.recurrence}] : ${i.amount.toFixed(2)}`, 18, y); y+=5; if(y>270){ doc.addPage(); y=20; } });
-    doc.save(`${currentBusiness}_${month}.pdf`);
-  }
-
-  async function hardReset() {
-    if (confirm("DELETE ALL BUSINESSES AND ALL DATA? IRREVERSIBLE")) {
-      const tx1 = db.transaction(["expenditures"], "readwrite");
-      await tx1.objectStore("expenditures").clear();
-      const tx2 = db.transaction(["income"], "readwrite");
-      await tx2.objectStore("income").clear();
-      const tx3 = db.transaction(["businesses"], "readwrite");
-      await tx3.objectStore("businesses").clear();
-      await addBusinessInternal("personal");
-      businessTargets = { personal: { amount: 0, percent: 30 } };
-      saveTargets();
-      currentBusiness = "personal";
-      await renderBusinessTabs();
-      resetForm();
-      await fullRender();
+    const allBiz = await BusinessDB.getAllExpenditures(biz);
+    const alerts = [];
+    for (let e of allBiz) { if (!e.postponed && e.deadlineMonths && e.deadlineDueMonth) { const left = monthsBetween(month, e.deadlineDueMonth); if (left >= 0 && left <= 1) alerts.push({ ...e, left }); } }
+    const alertDiv = document.getElementById("businessDeadlineAlert");
+    if (alerts.length === 0) alertDiv.innerHTML = "<div class='text-[#8e7a66] text-xs'>no deadlines due within 1 month</div>";
+    else alertDiv.innerHTML = alerts.map(a => `<div class="${a.left === 0 ? 'deadline-urgent' : 'deadline-soon'} p-2 text-xs flex justify-between"><span><strong>${escapeHtml(a.name)}</strong> (${a.type})</span><span>${a.amount.toFixed(2)} · due ${a.left === 0 ? 'THIS MONTH' : `in ${a.left} month(s)`}</span></div>`).join("");
+    let recHtml = "";
+    if (effectiveTarget > 0 && totalWants > effectiveTarget) recHtml += `<div>⚠️ wants exceed target by ${(totalWants-effectiveTarget).toFixed(2)}</div>`;
+    const wantsPct = totalExpenses ? (totalWants/totalExpenses)*100 : 0;
+    if (target.percent > 0 && wantsPct > target.percent) recHtml += `<div>📉 wants are ${wantsPct.toFixed(0)}% of expenses (target ${target.percent}%)</div>`;
+    if (!recHtml) recHtml = "<div>✅ wants within target range</div>";
+    document.getElementById("businessRecommendations").innerHTML = recHtml;
+    const hist = [];
+    const allExp = await BusinessDB.getAllExpenditures(biz);
+    const monthsSet = [...new Set(allExp.map(e=>e.month))].sort();
+    for (let m of monthsSet) { const ws = allExp.filter(e=>e.month===m && e.type==="wants" && !e.postponed).reduce((s,e)=>s+e.amount,0); hist.push({ month: m, wants: ws }); }
+    if (hist.length && businessProjChart) businessProjChart.destroy();
+    if (hist.length) {
+      const vals = hist.map(h=>h.wants);
+      const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+      const trend = vals.length>=2 ? vals[vals.length-1]-vals[vals.length-2] : 0;
+      const proj = [];
+      const last = hist[hist.length-1].month;
+      const [ly,lm] = last.split("-").map(Number);
+      for (let i=1;i<=3;i++) { let ny=ly, nm=lm+i; while(nm>12){ny++;nm-=12;} proj.push({ month: `${ny}-${String(nm).padStart(2,'0')}`, wants: Math.max(0, avg+trend*i) }); }
+      businessProjChart = new Chart(document.getElementById("businessProjectionChart"), { type: "line", data: { labels: proj.map(p=>p.month), datasets: [{ label: "projected wants", data: proj.map(p=>p.wants), borderColor: "#8e7a66", fill: false }] }, options: { responsive: true } });
     }
+    if (businessPieChart) businessPieChart.destroy();
+    businessPieChart = new Chart(document.getElementById("businessPieChart"), { type: "pie", data: { labels: ["needs","wants"], datasets: [{ data: [totalNeeds,totalWants], backgroundColor: ["#b8aa98","#9e8c7a"] }] }, options: { responsive: true } });
+    if (businessTrendChart) businessTrendChart.destroy();
+    businessTrendChart = new Chart(document.getElementById("businessTrendChart"), { type: "line", data: { labels: hist.map(h=>h.month), datasets: [{ label: "actual wants", data: hist.map(h=>h.wants), borderColor: "#8e7a66" }, { label: "target", data: new Array(hist.length).fill(effectiveTarget), borderColor: "#b89a7a", borderDash: [5,5] }] }, options: { responsive: true } });
   }
 
-  function setActiveType(type) { currentType = type; activeTypeSpan.innerText = type; if (type === "needs") { needsBtn.style.background = "#d8cdbf"; wantsBtn.style.background = "#eae1d7"; } else { wantsBtn.style.background = "#d8cdbf"; needsBtn.style.background = "#eae1d7"; } resetForm(); fullRender(); }
-  async function jumpToCurrent() { monthInput.value = getSystemMonth(); await fullRender(); }
+  async function businessCommit() {
+    const title = document.getElementById("businessEntryTitle").value.trim();
+    const notes = document.getElementById("businessEntryNotes").value.trim();
+    const amount = parseFloat(document.getElementById("businessEntryAmount").value);
+    const recurrence = document.getElementById("businessMonthlyRadio").checked ? "monthly" : (document.getElementById("businessYearlyRadio").checked ? "yearly" : "onetime");
+    const postponed = document.getElementById("businessPostponeCheck").checked;
+    let deadline = parseInt(document.getElementById("businessDeadlineMonths").value);
+    if (isNaN(deadline)) deadline = 0;
+    if (!title || isNaN(amount) || amount <= 0) { alert("title and amount required"); return; }
+    const month = document.getElementById("businessMonth").value || getSystemMonth();
+    let due = null;
+    if (deadline > 0) due = addMonths(month, deadline);
+    if (businessEditId !== null) {
+      const tx = BusinessDB.db.transaction(["expenditures"], "readwrite");
+      const store = tx.objectStore("expenditures");
+      const existing = await new Promise(resolve => { const req = store.get(businessEditId); req.onsuccess = () => resolve(req.result); });
+      if (existing) { existing.name=title; existing.desc=notes; existing.amount=amount; existing.recurrence=recurrence; existing.postponed=postponed; existing.deadlineMonths=deadline; existing.deadlineDueMonth=due; await BusinessDB.saveExpenditure(existing); businessEditId=null; }
+    } else {
+      await BusinessDB.saveExpenditure({ business: BusinessDB.currentBusiness, month, type: businessActiveType, name: title, desc: notes, amount, recurrence, postponed, deadlineMonths: deadline, deadlineDueMonth: due, createdAt: Date.now() });
+    }
+    document.getElementById("businessEntryTitle").value = ""; document.getElementById("businessEntryNotes").value = ""; document.getElementById("businessEntryAmount").value = ""; document.getElementById("businessDeadlineMonths").value = "0"; document.getElementById("businessMonthlyRadio").checked = true; document.getElementById("businessPostponeCheck").checked = false;
+    await businessRender();
+  }
+  window.businessEditEntry = async (id) => { businessEditId = id; const tx = BusinessDB.db.transaction(["expenditures"], "readonly"); const store = tx.objectStore("expenditures"); const e = await new Promise(resolve => { const req = store.get(id); req.onsuccess = () => resolve(req.result); }); if(e){ document.getElementById("businessEntryTitle").value=e.name; document.getElementById("businessEntryNotes").value=e.desc||""; document.getElementById("businessEntryAmount").value=e.amount; document.getElementById("businessDeadlineMonths").value=e.deadlineMonths||0; if(e.recurrence==="monthly") document.getElementById("businessMonthlyRadio").checked=true; else if(e.recurrence==="yearly") document.getElementById("businessYearlyRadio").checked=true; else document.getElementById("businessOnetimeRadio").checked=true; document.getElementById("businessPostponeCheck").checked=e.postponed||false; } };
+  window.businessDeleteEntry = async (id) => { await BusinessDB.deleteExpenditure(id); if(businessEditId===id) businessEditId=null; await businessRender(); };
+  window.businessTogglePostpone = async (id) => { const tx = BusinessDB.db.transaction(["expenditures"], "readwrite"); const store = tx.objectStore("expenditures"); const e = await new Promise(resolve => { const req = store.get(id); req.onsuccess = () => resolve(req.result); }); if(e){ e.postponed = !e.postponed; await BusinessDB.saveExpenditure(e); await businessRender(); } };
 
-  // event binding
-  commitBtn.onclick = commitEntry; abortBtn.onclick = () => { resetForm(); fullRender(); };
-  needsBtn.onclick = () => setActiveType("needs"); wantsBtn.onclick = () => setActiveType("wants");
-  jumpToCurrentBtn.onclick = jumpToCurrent; projectForwardBtn.onclick = projectForward;
-  applyTargetBtn.onclick = applyTarget; resetTargetBtn.onclick = resetTarget;
-  exportCsvBtn.onclick = exportCSV; pdfBtn.onclick = generatePDF; hardResetBtn.onclick = hardReset;
-  addIncomeBtn.onclick = () => window.addIncome();
-  addBusinessBtn.onclick = addBusiness; renameBusinessBtn.onclick = renameBusiness; deleteBusinessBtn.onclick = deleteBusiness;
-  monthInput.onchange = () => { resetForm(); fullRender(); };
+  async function businessAddIncome() {
+    const name = prompt("income source name:");
+    if(!name) return;
+    const method = prompt("acquisition method:");
+    const amount = parseFloat(prompt("monthly amount:"));
+    if(isNaN(amount)||amount<=0) return;
+    await BusinessDB.saveIncome({ business: BusinessDB.currentBusiness, name: name.trim(), method: method||"—", amount });
+    await businessRender();
+  }
 
-  window.editEntry = editEntry; window.deleteEntry = deleteEntry; window.togglePostpone = togglePostpone;
+  async function businessRenderSelector() {
+    const businesses = await BusinessDB.getBusinesses();
+    const container = document.getElementById("businessSelector");
+    container.innerHTML = businesses.map(b => `<button class="business-tab px-3 py-1 text-sm ${b === BusinessDB.currentBusiness ? 'active bg-[#f5f0ea]' : ''}" onclick="businessSwitch('${b}')">${b}</button>`).join("");
+    document.getElementById("currentBusinessLabel").innerText = BusinessDB.currentBusiness;
+    document.getElementById("businessTargetLabel").innerText = BusinessDB.currentBusiness;
+    const target = businessTargets[BusinessDB.currentBusiness] || { amount: 0, percent: 30 };
+    document.getElementById("businessWantsAmount").value = target.amount || "";
+    document.getElementById("businessWantsPercent").value = target.percent;
+  }
+  window.businessSwitch = async (biz) => { BusinessDB.currentBusiness = biz; await businessRenderSelector(); await businessRender(); };
+  async function businessAdd() { let n = prompt("business name:"); if(n && n.trim() && !(await BusinessDB.getBusinesses()).includes(n.trim())) { await BusinessDB.addBusiness(n.trim()); if(!businessTargets[n.trim()]) businessTargets[n.trim()] = { amount: 0, percent: 30 }; localStorage.setItem("businessTargets", JSON.stringify(businessTargets)); await businessRenderSelector(); } }
+  async function businessRename() { let nn = prompt("new name:"); if(nn && nn.trim() && nn !== BusinessDB.currentBusiness) { await BusinessDB.renameBusiness(BusinessDB.currentBusiness, nn.trim()); businessTargets[nn.trim()] = businessTargets[BusinessDB.currentBusiness]; delete businessTargets[BusinessDB.currentBusiness]; localStorage.setItem("businessTargets", JSON.stringify(businessTargets)); BusinessDB.currentBusiness = nn.trim(); await businessRenderSelector(); await businessRender(); } }
+  async function businessDelete() { const bs = await BusinessDB.getBusinesses(); if(bs.length === 1) { alert("cannot delete last business"); return; } if(confirm(`delete ${BusinessDB.currentBusiness}?`)) { await BusinessDB.deleteBusiness(BusinessDB.currentBusiness); delete businessTargets[BusinessDB.currentBusiness]; localStorage.setItem("businessTargets", JSON.stringify(businessTargets)); const remaining = await BusinessDB.getBusinesses(); BusinessDB.currentBusiness = remaining[0]; await businessRenderSelector(); await businessRender(); } }
 
-  // init
-  (async function init() {
-    await openDB();
-    const businesses = await getBusinesses();
-    if (!businesses.includes(currentBusiness)) currentBusiness = businesses[0];
-    systemMonthSpan.innerText = getSystemMonth();
-    const target = getCurrentTarget();
-    wantsTargetAmountInput.value = target.amount || "";
-    wantsTargetPercentInput.value = target.percent;
-    await renderBusinessTabs();
-    currentBusinessNameSpan.innerText = currentBusiness;
-    targetBusinessLabel.innerText = currentBusiness;
-    setActiveType("needs");
-    await fullRender();
+  function businessApplyTarget() {
+    const amt = parseFloat(document.getElementById("businessWantsAmount").value);
+    const pct = parseFloat(document.getElementById("businessWantsPercent").value);
+    if (!isNaN(amt)) businessTargets[BusinessDB.currentBusiness] = { amount: amt, percent: isNaN(pct) ? 30 : pct };
+    else if (!isNaN(pct)) businessTargets[BusinessDB.currentBusiness] = { amount: businessTargets[BusinessDB.currentBusiness]?.amount || 0, percent: pct };
+    localStorage.setItem("businessTargets", JSON.stringify(businessTargets));
+    businessRender();
+  }
+
+  // ----- Page Toggle -----
+  document.getElementById("personalPageBtn").onclick = () => { document.getElementById("personalPage").style.display = "block"; document.getElementById("businessPage").style.display = "none"; document.getElementById("personalPageBtn").classList.add("active"); document.getElementById("businessPageBtn").classList.remove("active"); };
+  document.getElementById("businessPageBtn").onclick = () => { document.getElementById("personalPage").style.display = "none"; document.getElementById("businessPage").style.display = "block"; document.getElementById("businessPageBtn").classList.add("active"); document.getElementById("personalPageBtn").classList.remove("active"); businessRender(); };
+
+  // ----- Init -----
+  (async function() {
+    await PersonalDB.open();
+    await BusinessDB.open();
+    await BusinessDB.getBusinesses();
+    await businessRenderSelector();
+    document.getElementById("systemMonthDisplay").innerText = getSystemMonth();
+    document.getElementById("personalMonth").value = getSystemMonth();
+    document.getElementById("businessMonth").value = getSystemMonth();
+    document.getElementById("personalWantsAmount").value = personalTargetAmount || "";
+    document.getElementById("personalWantsPercent").value = personalTargetPercent;
+    document.getElementById("personalNeedsBtn").onclick = () => { personalActiveType = "needs"; document.getElementById("personalActiveType").innerText = "needs"; personalRender(); };
+    document.getElementById("personalWantsBtn").onclick = () => { personalActiveType = "wants"; document.getElementById("personalActiveType").innerText = "wants"; personalRender(); };
+    document.getElementById("personalCommitBtn").onclick = personalCommit;
+    document.getElementById("personalAbortBtn").onclick = () => { personalEditId = null; document.getElementById("personalEntryTitle").value = ""; document.getElementById("personalEntryNotes").value = ""; document.getElementById("personalEntryAmount").value = ""; document.getElementById("personalDeadlineMonths").value = "0"; };
+    document.getElementById("personalAddIncomeBtn").onclick = personalAddIncome;
+    document.getElementById("personalJumpToCurrent").onclick = () => { document.getElementById("personalMonth").value = getSystemMonth(); personalRender(); };
+    document.getElementById("personalProjectForward").onclick = () => alert("projection shown in chart");
+    document.getElementById("personalApplyTargetBtn").onclick = () => { personalTargetAmount = parseFloat(document.getElementById("personalWantsAmount").value) || 0; personalTargetPercent = parseFloat(document.getElementById("personalWantsPercent").value) || 30; localStorage.setItem("personalTargetAmount", personalTargetAmount); localStorage.setItem("personalTargetPercent", personalTargetPercent); personalRender(); };
+    document.getElementById("personalResetTargetBtn").onclick = () => { personalTargetAmount = 0; personalTargetPercent = 30; document.getElementById("personalWantsAmount").value = ""; document.getElementById("personalWantsPercent").value = "30"; localStorage.setItem("personalTargetAmount", 0); localStorage.setItem("personalTargetPercent", 30); personalRender(); };
+    document.getElementById("personalExportCsv").onclick = async () => { const month = document.getElementById("personalMonth").value; const ex = await PersonalDB.getExpenditures(month); const inc = await PersonalDB.getIncome(); let csv = "type,name,description,amount,recurrence,postponed,deadlineMonths\n"; ex.forEach(e=>csv+=`${e.type},${e.name},${e.desc||""},${e.amount},${e.recurrence},${e.postponed},${e.deadlineMonths||0}\n`); const blob = new Blob([csv], {type:"text/csv"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `personal_${month}.csv`; a.click(); URL.revokeObjectURL(a.href); };
+    document.getElementById("personalPdfBtn").onclick = async () => { const { jsPDF } = window.jspdf; const doc = new jsPDF(); const month = document.getElementById("personalMonth").value; const ex = await PersonalDB.getExpenditures(month); const inc = await PersonalDB.getIncome(); const incTot = inc.reduce((s,i)=>s+i.amount,0); const active = ex.filter(e=>!e.postponed); const tn = active.filter(e=>e.type==="needs").reduce((a,b)=>a+b.amount,0); const tw = active.filter(e=>e.type==="wants").reduce((a,b)=>a+b.amount,0); doc.text("PERSONAL FINANCE STATEMENT", 15, 20); doc.text(`month: ${month}`, 15, 30); doc.text(`income: ${incTot.toFixed(2)} | expenses: ${(tn+tw).toFixed(2)}`, 15, 40); let y=55; doc.text("INCOME",15,y); y+=6; inc.forEach(i=>{doc.text(`- ${i.name} (${i.method}) : ${i.amount.toFixed(2)}`,18,y); y+=5;}); y+=5; doc.text("EXPENSES",15,y); y+=6; active.forEach(i=>{doc.text(`- ${i.name} [${i.type}] : ${i.amount.toFixed(2)}`,18,y); y+=5;}); doc.save(`personal_${month}.pdf`); };
+    document.getElementById("businessNeedsBtn").onclick = () => { businessActiveType = "needs"; document.getElementById("businessActiveType").innerText = "needs"; businessRender(); };
+    document.getElementById("businessWantsBtn").onclick = () => { businessActiveType = "wants"; document.getElementById("businessActiveType").innerText = "wants"; businessRender(); };
+    document.getElementById("businessCommitBtn").onclick = businessCommit;
+    document.getElementById("businessAbortBtn").onclick = () => { businessEditId = null; document.getElementById("businessEntryTitle").value = ""; document.getElementById("businessEntryNotes").value = ""; document.getElementById("businessEntryAmount").value = ""; document.getElementById("businessDeadlineMonths").value = "0"; };
+    document.getElementById("businessAddIncomeBtn").onclick = businessAddIncome;
+    document.getElementById("businessJumpToCurrent").onclick = () => { document.getElementById("businessMonth").value = getSystemMonth(); businessRender(); };
+    document.getElementById("businessApplyTargetBtn").onclick = businessApplyTarget;
+    document.getElementById("businessResetTargetBtn").onclick = () => { businessTargets[BusinessDB.currentBusiness] = { amount: 0, percent: 30 }; localStorage.setItem("businessTargets", JSON.stringify(businessTargets)); document.getElementById("businessWantsAmount").value = ""; document.getElementById("businessWantsPercent").value = "30"; businessRender(); };
+    document.getElementById("businessExportCsv").onclick = async () => { const month = document.getElementById("businessMonth").value; const ex = await BusinessDB.getExpenditures(BusinessDB.currentBusiness, month); const inc = await BusinessDB.getIncome(BusinessDB.currentBusiness); let csv = "type,name,description,amount,recurrence,postponed,deadlineMonths\n"; ex.forEach(e=>csv+=`${e.type},${e.name},${e.desc||""},${e.amount},${e.recurrence},${e.postponed},${e.deadlineMonths||0}\n`); const blob = new Blob([csv], {type:"text/csv"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${BusinessDB.currentBusiness}_${month}.csv`; a.click(); URL.revokeObjectURL(a.href); };
+    document.getElementById("businessPdfBtn").onclick = async () => { const { jsPDF } = window.jspdf; const doc = new jsPDF(); const month = document.getElementById("businessMonth").value; const ex = await BusinessDB.getExpenditures(BusinessDB.currentBusiness, month); const inc = await BusinessDB.getIncome(BusinessDB.currentBusiness); const incTot = inc.reduce((s,i)=>s+i.amount,0); const active = ex.filter(e=>!e.postponed); const tn = active.filter(e=>e.type==="needs").reduce((a,b)=>a+b.amount,0); const tw = active.filter(e=>e.type==="wants").reduce((a,b)=>a+b.amount,0); doc.text(`${BusinessDB.currentBusiness.toUpperCase()} · STATEMENT`, 15, 20); doc.text(`month: ${month}`, 15, 30); doc.text(`income: ${incTot.toFixed(2)} | expenses: ${(tn+tw).toFixed(2)}`, 15, 40); let y=55; doc.text("INCOME",15,y); y+=6; inc.forEach(i=>{doc.text(`- ${i.name} (${i.method}) : ${i.amount.toFixed(2)}`,18,y); y+=5;}); y+=5; doc.text("EXPENSES",15,y); y+=6; active.forEach(i=>{doc.text(`- ${i.name} [${i.type}] : ${i.amount.toFixed(2)}`,18,y); y+=5;}); doc.save(`${BusinessDB.currentBusiness}_${month}.pdf`); };
+    document.getElementById("businessAddBtn").onclick = businessAdd;
+    document.getElementById("businessRenameBtn").onclick = businessRename;
+    document.getElementById("businessDeleteBtn").onclick = businessDelete;
+    document.getElementById("personalMonth").onchange = personalRender;
+    document.getElementById("businessMonth").onchange = businessRender;
+    personalRender();
   })();
 </script>
 </body>
